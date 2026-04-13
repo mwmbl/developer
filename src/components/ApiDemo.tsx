@@ -17,7 +17,7 @@ type Tab = "curl" | "python" | "js";
 // ── Snippet generators ─────────────────────────────────────────────────────
 
 function getCurlSnippet(query: string) {
-  return `curl -G "https://api.mwmbl.org/api/v1/search/?s=${query}"`;
+  return `curl "https://api.mwmbl.org/api/v1/search/?s=${encodeURIComponent(query)}"`;
 }
 
 function getPythonSnippet(query: string) {
@@ -189,6 +189,7 @@ export function ApiDemo() {
           <button
             type="submit"
             disabled={loading || !query.trim()}
+            suppressHydrationWarning
             className="px-4 py-1.5 bg-primary text-primary-foreground text-xs font-bold rounded-sm disabled:opacity-40 hover:opacity-90 transition-opacity"
           >
             {loading ? (
