@@ -17,16 +17,14 @@ type Tab = "curl" | "python" | "js";
 // ── Snippet generators ─────────────────────────────────────────────────────
 
 function getCurlSnippet(query: string) {
-  return `curl -G "https://api.mwmbl.org/api/v1/search" \\
-  --data-urlencode "q=${query}"`;
+  return `curl -G "https://api.mwmbl.org/api/v1/search/?s=${query}"`;
 }
 
 function getPythonSnippet(query: string) {
   return `import requests
 
 response = requests.get(
-    "https://api.mwmbl.org/api/v1/search",
-    params={"q": "${query}"},
+    "https://api.mwmbl.org/api/v1/search/?s=${query}"
 )
 results = response.json()
 for r in results:
@@ -34,9 +32,9 @@ for r in results:
 }
 
 function getJsSnippet(query: string) {
-  return `const params = new URLSearchParams({ q: "${query}" });
+  return `const params = new URLSearchParams({ s: "${query}" });
 const res = await fetch(
-  \`https://api.mwmbl.org/api/v1/search?\${params}\`
+  \`https://api.mwmbl.org/api/v1/search/?\${params}\`
 );
 const results = await res.json();
 results.forEach(({ title, url }) => console.log(title, url));`;
@@ -140,14 +138,14 @@ export function ApiDemo() {
   const handleSearch = useCallback(
     async (e?: React.FormEvent) => {
       e?.preventDefault();
-      const q = query.trim();
-      if (!q) return;
+      const s = query.trim();
+      if (!s) return;
       setLoading(true);
       setError(null);
       try {
-        const params = new URLSearchParams({ q });
+        const params = new URLSearchParams({ s });
         const res = await fetch(
-          `https://api.mwmbl.org/api/v1/search?${params}`
+          `https://api.mwmbl.org/api/v1/search/?${params}`
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();

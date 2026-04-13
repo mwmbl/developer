@@ -26,8 +26,7 @@ export default function Home() {
             className="rounded-lg"
           />
           <span className="font-bold text-lg tracking-tight">
-            mwmbl
-            <span className="text-accent-text">.api</span>
+            <span className="text-accent-text">api.</span>mwmbl
           </span>
         </div>
 
