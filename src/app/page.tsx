@@ -1,63 +1,15 @@
 "use client";
 
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { TypingHero } from "@/components/TypingHero";
 import { ApiDemo } from "@/components/ApiDemo";
-import { GitFork, ExternalLink } from "lucide-react";
+import { Nav } from "@/components/Nav";
+import { Footer } from "@/components/Footer";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* ── Nav ─────────────────────────────────────────────────────── */}
-      <motion.nav
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="flex items-center justify-between px-6 py-4 border-b border-border/50 max-w-6xl mx-auto w-full"
-      >
-        <div className="flex items-center gap-3">
-          <Image
-            src="/logo.svg"
-            alt="Mwmbl logo"
-            width={36}
-            height={36}
-            loading="eager"
-            className="rounded-lg"
-          />
-          <span className="font-bold text-lg tracking-tight">
-            <span className="text-accent-text">api.</span>mwmbl
-          </span>
-        </div>
-
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <a
-            href="https://mwmbl.org"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-foreground transition-colors flex items-center gap-1"
-          >
-            Docs <ExternalLink size={12} />
-          </a>
-          <a
-            href="https://github.com/mwmbl/mwmbl"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-foreground transition-colors flex items-center gap-1"
-          >
-            <GitFork size={15} />
-            GitHub
-          </a>
-          <a
-            href="https://api.mwmbl.org/api/v1/search/docs"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3 py-1.5 border border-accent-text text-accent-text text-xs font-semibold rounded-sm hover:bg-accent-text hover:text-background transition-colors"
-          >
-            API Reference
-          </a>
-        </div>
-      </motion.nav>
+      <Nav />
 
       {/* ── Hero ────────────────────────────────────────────────────── */}
       <section className="flex flex-col items-center justify-center pt-20 pb-16 px-4 relative overflow-hidden">
@@ -99,7 +51,7 @@ export default function Home() {
       </section>
 
       {/* ── API Demo ─────────────────────────────────────────────────── */}
-      <section className="flex-1 pb-20 px-4">
+      <section id="demo" className="flex-1 pb-20 px-4">
         <ApiDemo />
       </section>
 
@@ -140,27 +92,7 @@ export default function Home() {
         </div>
       </motion.section>
 
-      {/* ── Footer ───────────────────────────────────────────────────── */}
-      <footer className="border-t border-border/50 py-6 px-6 text-center text-xs text-muted-foreground/50">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>
-            Built by the{" "}
-            <a
-              href="https://mwmbl.org"
-              className="text-accent-text hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Mwmbl community
-            </a>{" "}
-            — search that puts people first.
-          </span>
-          <span className="font-mono">
-            <span className="text-accent-text">$</span> curl
-            api.mwmbl.org/api/v1/search
-          </span>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
