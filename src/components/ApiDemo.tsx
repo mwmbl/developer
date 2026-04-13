@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Copy, Check, Loader2 } from "lucide-react";
 
@@ -120,14 +120,23 @@ const TAB_LABELS: { id: Tab; label: string }[] = [
 // ── Main component ─────────────────────────────────────────────────────────
 
 export function ApiDemo() {
-  const [query, setQuery] = useState("");
+  const DEFAULT_QUERY = "open source search engine";
+  const [query, setQuery] = useState(DEFAULT_QUERY);
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("curl");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const effectiveQuery = query.trim() || "open source search engine";
+  // Sync state with any browser-restored input value on mount
+  useEffect(() => {
+    if (inputRef.current && inputRef.current.value !== query) {
+      setQuery(inputRef.current.value || DEFAULT_QUERY);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const effectiveQuery = query.trim() || DEFAULT_QUERY;
 
   const snippets: Record<Tab, string> = {
     curl: getCurlSnippet(effectiveQuery),
