@@ -49,7 +49,7 @@ export default function Home() {
             GitHub
           </a>
           <a
-            href="https://api.mwmbl.org"
+            href="https://api.mwmbl.org/api/v1/search/docs"
             target="_blank"
             rel="noopener noreferrer"
             className="px-3 py-1.5 border border-accent-text text-accent-text text-xs font-semibold rounded-sm hover:bg-accent-text hover:text-background transition-colors"

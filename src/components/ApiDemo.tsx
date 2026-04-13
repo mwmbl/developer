@@ -161,7 +161,7 @@ export function ApiDemo() {
   );
 
   const jsonString = results
-    ? JSON.stringify(results.slice(0, 5), null, 2)
+    ? JSON.stringify(results, null, 2)
     : null;
 
   return (
@@ -220,7 +220,7 @@ export function ApiDemo() {
                 response.json
               </span>
             </div>
-            <div className="p-4 overflow-auto max-h-[420px] text-xs leading-relaxed">
+            <div className="p-4 overflow-auto max-h-[600px] text-xs leading-relaxed">
               <AnimatePresence mode="wait">
                 {loading && (
                   <motion.div
@@ -311,7 +311,7 @@ export function ApiDemo() {
             </div>
 
             {/* Snippet content */}
-            <div className="p-4 overflow-auto max-h-[420px]">
+            <div className="p-4 overflow-auto max-h-[600px]">
               <AnimatePresence mode="wait">
                 <motion.pre
                   key={activeTab}
