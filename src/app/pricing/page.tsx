@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { PricingCard, PricingTier } from "@/components/PricingCard";
 import Link from "next/link";
+import { useAuth } from "@/lib/auth-context";
+import { createCheckout } from "@/lib/api";
 
 const TIERS: PricingTier[] = [
   {
@@ -87,6 +90,19 @@ const TIERS: PricingTier[] = [
 ];
 
 export default function PricingPage() {
+  const { user } = useAuth();
+  const [checkoutLoading, setCheckoutLoading] = useState<"starter" | "pro" | null>(null);
+
+  const handleCheckout = async (plan: "starter" | "pro") => {
+    setCheckoutLoading(plan);
+    try {
+      const { checkout_url } = await createCheckout(plan);
+      window.location.href = checkout_url;
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <Nav />
@@ -153,9 +169,31 @@ export default function PricingPage() {
       {/* Pricing grid */}
       <section className="flex-1 pb-20 px-4">
         <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {TIERS.map((tier, i) => (
-            <PricingCard key={tier.name} tier={tier} index={i} />
-          ))}
+          {TIERS.map((tier, i) => {
+            const plan = tier.name.toLowerCase() as "starter" | "pro";
+            const isPaid = plan === "starter" || plan === "pro";
+            if (isPaid && user) {
+              return (
+                <PricingCard
+                  key={tier.name}
+                  tier={tier}
+                  index={i}
+                  onCtaClick={() => void handleCheckout(plan)}
+                  ctaLoading={checkoutLoading === plan}
+                />
+              );
+            }
+            if (isPaid && !user) {
+              return (
+                <PricingCard
+                  key={tier.name}
+                  tier={{ ...tier, ctaHref: `/signup?plan=${plan}` }}
+                  index={i}
+                />
+              );
+            }
+            return <PricingCard key={tier.name} tier={tier} index={i} />;
+          })}
         </div>
 
         {/* Fine print */}

@@ -5,9 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { GitFork, ExternalLink } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 export function Nav() {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   return (
     <motion.nav
@@ -64,12 +66,34 @@ export function Nav() {
         >
           API Reference
         </a>
-        <Link
-          href="/signup"
-          className="px-3 py-1.5 bg-accent-text text-background text-xs font-semibold rounded-sm hover:opacity-90 transition-opacity"
-        >
-          Sign Up
-        </Link>
+        {user ? (
+          <div className="flex items-center gap-2">
+            <Link
+              href="/dashboard"
+              className="px-3 py-1.5 bg-accent-text text-background text-xs font-semibold rounded-sm hover:opacity-90 transition-opacity"
+            >
+              Dashboard
+            </Link>
+            <span className="w-7 h-7 rounded-full bg-accent-text/15 flex items-center justify-center text-xs font-bold text-accent-text uppercase">
+              {user.email[0]}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link
+              href="/signin"
+              className="px-3 py-1.5 border border-border text-muted-foreground text-xs font-semibold rounded-sm hover:border-accent-text hover:text-accent-text transition-colors"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/signup"
+              className="px-3 py-1.5 bg-accent-text text-background text-xs font-semibold rounded-sm hover:opacity-90 transition-opacity"
+            >
+              Sign Up
+            </Link>
+          </div>
+        )}
       </div>
     </motion.nav>
   );

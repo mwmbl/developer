@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 
 export interface PricingTier {
   name: string;
@@ -23,9 +23,11 @@ export interface PricingTier {
 interface PricingCardProps {
   tier: PricingTier;
   index: number;
+  onCtaClick?: () => void;
+  ctaLoading?: boolean;
 }
 
-export function PricingCard({ tier, index }: PricingCardProps) {
+export function PricingCard({ tier, index, onCtaClick, ctaLoading }: PricingCardProps) {
   const borderClass = tier.highlighted
     ? "border-accent-text"
     : "border-border";
@@ -95,7 +97,16 @@ export function PricingCard({ tier, index }: PricingCardProps) {
       </ul>
 
       {/* CTA */}
-      {tier.ctaExternal ? (
+      {onCtaClick ? (
+        <button
+          onClick={onCtaClick}
+          disabled={ctaLoading}
+          className={`w-full flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-sm transition-opacity disabled:opacity-50 ${ctaClass}`}
+        >
+          {ctaLoading && <Loader2 size={13} className="animate-spin" />}
+          {tier.cta}
+        </button>
+      ) : tier.ctaExternal ? (
         <a
           href={tier.ctaHref}
           target="_blank"

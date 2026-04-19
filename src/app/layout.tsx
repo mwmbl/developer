@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/lib/auth-context";
 
 export const metadata: Metadata = {
   title: "Mwmbl API — Ethical Web Search for Developers",
@@ -22,7 +23,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="antialiased font-mono">{children}</body>
+      <body className="antialiased font-mono"><AuthProvider>{children}</AuthProvider></body>
     </html>
   );
 }
