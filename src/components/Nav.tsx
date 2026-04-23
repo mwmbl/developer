@@ -28,7 +28,7 @@ export function Nav() {
           className="rounded-lg"
         />
         <span className="font-bold text-lg tracking-tight">
-          <span className="text-accent-text">api.</span>mwmbl
+          <span className="text-accent-text">developer.</span>mwmbl.org
         </span>
       </Link>
 
