@@ -66,14 +66,14 @@ export default function Home() {
         <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
           {[
             {
-              label: "Free tier",
-              value: "Unlimited",
+              label: "Free tier - per month",
+              value: "1,000 requests",
               desc: "No API key required to get started",
             },
             {
               label: "Latency",
               value: "< 200ms",
-              desc: "Fast, globally distributed search index",
+              desc: "Fast, custom built search index",
             },
             {
               label: "License",
