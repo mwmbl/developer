@@ -38,20 +38,7 @@ export default function Home() {
           <span className="text-foreground font-semibold">generous free tier</span>{" "}
           — try it out:
         </motion.p>
-
-        {/* Scroll indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2, duration: 0.6 }}
-          className="mt-10 flex flex-col items-center gap-1 text-muted-foreground/40 text-xs"
-        >
-          <span>↓</span>
-        </motion.div>
-      </section>
-
-      {/* ── API Demo ─────────────────────────────────────────────────── */}
-      <section id="demo" className="flex-1 pb-20 px-4">
+          <div className="h-4" />
         <ApiDemo />
       </section>
 
