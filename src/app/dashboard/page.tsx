@@ -249,7 +249,7 @@ function ApiKeysSection() {
                 </span>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs text-muted-foreground font-mono">
-                    Created {new Date(k.created_at).toLocaleDateString()}
+                    Created {new Date(k.created_on).toLocaleDateString()}
                   </span>
                   {k.scopes.map((s) => (
                     <span key={s} className="px-1.5 py-0.5 bg-muted rounded-sm text-xs text-muted-foreground font-mono">

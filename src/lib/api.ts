@@ -1,4 +1,4 @@
-const API_BASE = "https://api.mwmbl.org";
+const API_BASE = "https://beta.mwmbl.org";
 
 const TOKEN_STORAGE = {
   get access() { return typeof window !== "undefined" ? localStorage.getItem("mwmbl_access") : null; },
@@ -140,7 +140,7 @@ export interface UserProfile {
 }
 
 export async function getMe(): Promise<UserProfile> {
-  return authedFetch<UserProfile>("/api/v1/platform/users/me");
+  return authedFetch<UserProfile>("/api/v1/platform/user");
 }
 
 export interface Subscription {
@@ -159,7 +159,7 @@ export async function getSubscription(): Promise<Subscription> {
 export interface ApiKey {
   id: string;
   name: string;
-  created_at: string;
+  created_on: string;
   scopes: string[];
   key?: string;
 }
