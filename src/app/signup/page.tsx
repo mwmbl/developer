@@ -180,6 +180,18 @@ function SignUpForm() {
 
         {error && <p className="text-xs text-destructive">{error}</p>}
 
+        <p className="text-xs text-muted-foreground/60 leading-relaxed">
+          By creating an account you agree to our{" "}
+          <Link href="/terms" className="text-accent-text hover:underline">
+            Terms and Conditions
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="text-accent-text hover:underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
+
         <button
           type="submit"
           disabled={loading}
