@@ -13,6 +13,7 @@ import {
   getSubscription, listApiKeys, createApiKey, deleteApiKey,
   createCheckout, ApiError, Subscription, ApiKey,
 } from "@/lib/api";
+import Link from "next/link";
 
 const PLAN_BADGE: Record<string, string> = {
   anonymous: "bg-muted text-muted-foreground",
@@ -80,7 +81,7 @@ function UsageCard({ sub }: { sub: Subscription }) {
   );
 }
 
-function UpgradeBanner({ onCheckout }: { onCheckout: (plan: "starter" | "pro") => Promise<void> }) {
+function UpgradeBanner({ onCheckout, canUpgrade }: { onCheckout: (plan: "starter" | "pro") => Promise<void>; canUpgrade: boolean }) {
   const [loading, setLoading] = useState<"starter" | "pro" | null>(null);
 
   const handleClick = async (plan: "starter" | "pro") => {
@@ -103,7 +104,8 @@ function UpgradeBanner({ onCheckout }: { onCheckout: (plan: "starter" | "pro") =
       <div className="flex gap-2 shrink-0">
         <button
           onClick={() => void handleClick("starter")}
-          disabled={loading !== null}
+          disabled={loading !== null || !canUpgrade}
+          title={!canUpgrade ? "Accept the Terms of Service to upgrade" : undefined}
           className="px-4 py-2 border border-accent-text text-accent-text text-xs font-bold rounded-sm hover:bg-accent-text hover:text-background transition-colors disabled:opacity-50 flex items-center gap-1.5"
         >
           {loading === "starter" && <Loader2 size={12} className="animate-spin" />}
@@ -111,7 +113,8 @@ function UpgradeBanner({ onCheckout }: { onCheckout: (plan: "starter" | "pro") =
         </button>
         <button
           onClick={() => void handleClick("pro")}
-          disabled={loading !== null}
+          disabled={loading !== null || !canUpgrade}
+          title={!canUpgrade ? "Accept the Terms of Service to upgrade" : undefined}
           className="px-4 py-2 bg-accent-text text-background text-xs font-bold rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1.5"
         >
           {loading === "pro" && <Loader2 size={12} className="animate-spin" />}
@@ -122,7 +125,7 @@ function UpgradeBanner({ onCheckout }: { onCheckout: (plan: "starter" | "pro") =
   );
 }
 
-function ApiKeysSection() {
+function ApiKeysSection({ canCreate }: { canCreate: boolean }) {
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [keysLoading, setKeysLoading] = useState(true);
   const [keysError, setKeysError] = useState<string | null>(null);
@@ -215,11 +218,13 @@ function ApiKeysSection() {
           value={newKeyName}
           onChange={(e) => setNewKeyName(e.target.value)}
           placeholder="Key name (optional)"
-          className="flex-1 bg-transparent border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-accent-text transition-colors font-mono"
+          disabled={!canCreate}
+          className="flex-1 bg-transparent border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-accent-text transition-colors font-mono disabled:opacity-50"
         />
         <button
           type="submit"
-          disabled={creating}
+          disabled={creating || !canCreate}
+          title={!canCreate ? "Accept the Terms of Service to create API keys" : undefined}
           className="px-4 py-2 bg-accent-text text-background text-xs font-bold rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1.5 shrink-0"
         >
           {creating ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
@@ -295,7 +300,7 @@ function ApiKeysSection() {
 }
 
 function DashboardContent() {
-  const { user, loading, signOut, refreshUser } = useAuth();
+  const { user, loading, signOut, refreshUser, hasAgreedToTerms } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const upgraded = searchParams.get("upgraded") === "true";
@@ -393,13 +398,28 @@ function DashboardContent() {
         </div>
       )}
 
+      {/* Terms of service banner */}
+      {!hasAgreedToTerms && (
+        <div className="border border-amber-500/30 bg-amber-500/10 rounded-sm px-5 py-3 flex items-center justify-between gap-3">
+          <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+            Accept our Terms of Service to create API keys or upgrade your plan.
+          </p>
+          <Link
+            href="/agree?next=/dashboard"
+            className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline shrink-0"
+          >
+            Accept Terms →
+          </Link>
+        </div>
+      )}
+
       {/* Upgrade banner for free users */}
       {user.plan === "free" && (
-        <UpgradeBanner onCheckout={handleCheckout} />
+        <UpgradeBanner onCheckout={handleCheckout} canUpgrade={hasAgreedToTerms} />
       )}
 
       {/* API Keys */}
-      <ApiKeysSection />
+      <ApiKeysSection canCreate={hasAgreedToTerms} />
     </main>
   );
 }

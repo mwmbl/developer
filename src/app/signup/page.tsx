@@ -41,6 +41,7 @@ function SignUpForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +49,10 @@ function SignUpForm() {
   const handleSubmit = async () => {
     setError(null);
 
+    if (!agreedToTerms) {
+      setError("You must agree to the Terms of Service to create an account.");
+      return;
+    }
     if (password !== confirm) {
       setError("Passwords do not match.");
       return;
@@ -59,7 +64,7 @@ function SignUpForm() {
 
     setLoading(true);
     try {
-      await register(email, password);
+      await register(email, password, ["TERMS_OF_SERVICE_API"]);
       setSubmitted(true);
       if (plan) {
         router.push(`/signin?plan=${plan}`);
@@ -180,17 +185,25 @@ function SignUpForm() {
 
         {error && <p className="text-xs text-destructive">{error}</p>}
 
-        <p className="text-xs text-muted-foreground/60 leading-relaxed">
-          By creating an account you agree to our{" "}
-          <Link href="/terms" className="text-accent-text hover:underline">
-            Terms and Conditions
-          </Link>{" "}
-          and{" "}
-          <Link href="/privacy" className="text-accent-text hover:underline">
-            Privacy Policy
-          </Link>
-          .
-        </p>
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={agreedToTerms}
+            onChange={(e) => setAgreedToTerms(e.target.checked)}
+            className="mt-0.5 shrink-0 accent-[var(--accent-text)]"
+          />
+          <span className="text-xs text-muted-foreground/60 leading-relaxed">
+            I have read and agree to the{" "}
+            <Link href="/terms" className="text-accent-text hover:underline" target="_blank">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="text-accent-text hover:underline" target="_blank">
+              Privacy Policy
+            </Link>
+            .
+          </span>
+        </label>
 
         <button
           type="submit"

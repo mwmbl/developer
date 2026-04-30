@@ -26,7 +26,12 @@ function SignInForm() {
     setError(null);
     setLoading(true);
     try {
-      await signIn(email, password);
+      const { hasAgreedToTerms: agreed } = await signIn(email, password);
+      if (!agreed) {
+        const next = plan ? `/signin?plan=${plan}` : "/dashboard";
+        router.push(`/agree?next=${encodeURIComponent(next)}`);
+        return;
+      }
       if (plan === "starter" || plan === "pro") {
         try {
           const { checkout_url } = await createCheckout(plan);

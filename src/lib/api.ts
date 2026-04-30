@@ -90,10 +90,10 @@ async function authedFetch<T>(path: string, options: RequestInit = {}): Promise<
 
 // ── Unauthenticated ─────────────────────────────────────────────────────────
 
-export async function register(email: string, password: string): Promise<void> {
+export async function register(email: string, password: string, agreements: string[] = []): Promise<void> {
   await request("/api/v1/platform/register", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, agreements }),
   });
 }
 
@@ -177,6 +177,23 @@ export async function createApiKey(name: string): Promise<ApiKey> {
 
 export async function deleteApiKey(keyId: string): Promise<void> {
   await authedFetch(`/api/v1/platform/api-keys/${keyId}`, { method: "DELETE" });
+}
+
+export interface Agreement {
+  agreement_type: string;
+  version_id: string;
+  accepted_at: string;
+}
+
+export async function getAgreements(): Promise<Agreement[]> {
+  return authedFetch<Agreement[]>("/api/v1/platform/agreements/");
+}
+
+export async function acceptAgreement(agreementType: string): Promise<Agreement> {
+  return authedFetch<Agreement>("/api/v1/platform/agreements/", {
+    method: "POST",
+    body: JSON.stringify({ agreement_type: agreementType }),
+  });
 }
 
 export async function createCheckout(plan: "starter" | "pro"): Promise<{ checkout_url: string }> {
