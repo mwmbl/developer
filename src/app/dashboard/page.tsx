@@ -83,18 +83,29 @@ function UsageCard({ sub }: { sub: Subscription }) {
 
 function UpgradeBanner({ onCheckout, canUpgrade }: { onCheckout: (plan: "starter" | "pro") => Promise<void>; canUpgrade: boolean }) {
   const [loading, setLoading] = useState<"starter" | "pro" | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleClick = async (plan: "starter" | "pro") => {
+    setError(null);
     setLoading(plan);
     try {
       await onCheckout(plan);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(null);
     }
   };
 
   return (
-    <div className="border border-border bg-card rounded-sm p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+    <div className="border border-border bg-card rounded-sm p-6 flex flex-col gap-4">
+      {error && (
+        <div className="flex items-center gap-2 text-xs text-destructive">
+          <AlertCircle size={13} />
+          {error}
+        </div>
+      )}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
       <div className="flex-1">
         <p className="text-sm font-semibold text-foreground mb-1">Upgrade your plan</p>
         <p className="text-xs text-muted-foreground">
@@ -120,6 +131,7 @@ function UpgradeBanner({ onCheckout, canUpgrade }: { onCheckout: (plan: "starter
           {loading === "pro" && <Loader2 size={12} className="animate-spin" />}
           Pro — $25/mo
         </button>
+      </div>
       </div>
     </div>
   );
