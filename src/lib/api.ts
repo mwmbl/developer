@@ -79,8 +79,13 @@ async function authedFetch<T>(path: string, options: RequestInit = {}): Promise<
       const text = await retry.text();
       return text ? (JSON.parse(text) as T) : ({} as T);
     }
-    TOKEN_STORAGE.clear();
-    throw new ApiError(401, "Session expired. Please sign in again.");
+    if (retry.status === 401) {
+      TOKEN_STORAGE.clear();
+      throw new ApiError(401, "Session expired. Please sign in again.");
+    }
+    let retryBody: unknown;
+    try { retryBody = await retry.json(); } catch { retryBody = null; }
+    throw normalizeError(retry.status, retryBody);
   }
 
   let body: unknown;
