@@ -201,10 +201,14 @@ export async function acceptAgreement(agreementType: string): Promise<Agreement>
   });
 }
 
-export async function createCheckout(plan: "starter" | "pro", embedOrigin?: string): Promise<{ checkout_url: string }> {
+export async function createCheckout(plan: "starter" | "pro", embedOrigin?: string, successUrl?: string): Promise<{ checkout_url: string }> {
   return authedFetch<{ checkout_url: string }>("/api/v1/platform/billing/checkout", {
     method: "POST",
-    body: JSON.stringify({ plan, ...(embedOrigin ? { embed_origin: embedOrigin } : {}) }),
+    body: JSON.stringify({
+      plan,
+      ...(embedOrigin ? { embed_origin: embedOrigin } : {}),
+      ...(successUrl ? { success_url: successUrl } : {}),
+    }),
   });
 }
 
