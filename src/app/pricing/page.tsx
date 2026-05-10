@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -8,6 +9,7 @@ import { PricingCard, PricingTier } from "@/components/PricingCard";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { createCheckout } from "@/lib/api";
+import { PolarEmbedCheckout } from "@polar-sh/checkout/embed";
 
 const TIERS: PricingTier[] = [
   {
@@ -91,13 +93,18 @@ const TIERS: PricingTier[] = [
 
 export default function PricingPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [checkoutLoading, setCheckoutLoading] = useState<"starter" | "pro" | null>(null);
 
   const handleCheckout = async (plan: "starter" | "pro") => {
     setCheckoutLoading(plan);
     try {
-      const { checkout_url } = await createCheckout(plan);
-      window.location.href = checkout_url;
+      const { checkout_url } = await createCheckout(plan, window.location.origin);
+      const checkout = await PolarEmbedCheckout.create(checkout_url);
+      checkout.addEventListener("success", (event) => {
+        event.preventDefault();
+        router.push("/dashboard");
+      });
     } finally {
       setCheckoutLoading(null);
     }
