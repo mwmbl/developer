@@ -335,14 +335,34 @@ function DashboardContent() {
   }, [user]);
 
   useEffect(() => {
-    if (upgraded) {
-      void refreshUser();
-    }
+    if (!upgraded) return;
+    let attempts = 0;
+    const poll = setInterval(async () => {
+      attempts++;
+      try {
+        const latest = await getSubscription();
+        setSub(latest);
+        if (latest.plan !== "free" || attempts >= 10) {
+          clearInterval(poll);
+          void refreshUser();
+        }
+      } catch {
+        if (attempts >= 10) clearInterval(poll);
+      }
+    }, 2000);
+    return () => clearInterval(poll);
   }, [upgraded, refreshUser]);
 
   const handleCheckout = useCallback(async (plan: "starter" | "pro") => {
-    const { checkout_url } = await createCheckout(plan);
-    window.location.href = checkout_url;
+    const successUrl = `${window.location.origin}/dashboard?upgraded=true`;
+    const { checkout_url } = await createCheckout(plan, window.location.origin, successUrl);
+    const { PolarEmbedCheckout } = await import("@polar-sh/checkout/embed");
+    const checkout = await PolarEmbedCheckout.create(checkout_url);
+    checkout.addEventListener("success", (event) => {
+      event.preventDefault();
+      checkout.close();
+      window.location.href = successUrl;
+    });
   }, []);
 
   if (loading || !user) {
