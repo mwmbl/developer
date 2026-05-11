@@ -24,7 +24,7 @@ export function Footer() {
             Privacy
           </Link>
           <span className="font-mono">
-            <span className="text-accent-text">$</span> curl api.mwmbl.org/api/v1/search
+            <span className="text-accent-text">$</span> curl api.mwmbl.org/api/v2/search
           </span>
         </div>
       </div>
