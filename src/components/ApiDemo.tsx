@@ -6,10 +6,22 @@ import { Search, Copy, Check, Loader2 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-interface SearchResult {
+interface SearchHit {
   url: string;
   title: string;
-  extract: string;
+  title_highlights: string[];
+  content: string;
+  content_highlights: string[];
+  engine: string;
+  score: number;
+}
+
+interface SearchResponse {
+  query: string;
+  number_of_results: number;
+  results: SearchHit[];
+  monthly_usage: number | null;
+  monthly_limit: number | null;
 }
 
 type Tab = "curl" | "python" | "js";
@@ -17,26 +29,26 @@ type Tab = "curl" | "python" | "js";
 // ── Snippet generators ─────────────────────────────────────────────────────
 
 function getCurlSnippet(query: string) {
-  return `curl "https://api.mwmbl.org/api/v1/search/?s=${encodeURIComponent(query)}"`;
+  return `curl "https://api.mwmbl.org/api/v2/search/?q=${encodeURIComponent(query)}"`;
 }
 
 function getPythonSnippet(query: string) {
   return `import requests
 
 response = requests.get(
-    "https://api.mwmbl.org/api/v1/search/?s=${query}"
+    "https://api.mwmbl.org/api/v2/search/?q=${query}"
 )
-results = response.json()
-for r in results:
+data = response.json()
+for r in data["results"]:
     print(r["title"], r["url"])`;
 }
 
 function getJsSnippet(query: string) {
-  return `const params = new URLSearchParams({ s: "${query}" });
+  return `const params = new URLSearchParams({ q: "${query}" });
 const res = await fetch(
-  \`https://api.mwmbl.org/api/v1/search/?\${params}\`
+  \`https://api.mwmbl.org/api/v2/search/?\${params}\`
 );
-const results = await res.json();
+const { results } = await res.json();
 results.forEach(({ title, url }) => console.log(title, url));`;
 }
 
@@ -122,7 +134,7 @@ const TAB_LABELS: { id: Tab; label: string }[] = [
 export function ApiDemo() {
   const DEFAULT_QUERY = "open source search engine";
   const [query, setQuery] = useState(DEFAULT_QUERY);
-  const [results, setResults] = useState<SearchResult[] | null>(null);
+  const [results, setResults] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("curl");
@@ -152,12 +164,12 @@ export function ApiDemo() {
       setLoading(true);
       setError(null);
       try {
-        const params = new URLSearchParams({ s });
+        const params = new URLSearchParams({ q: s });
         const res = await fetch(
-          `https://api.mwmbl.org/api/v1/search/?${params}`
+          `https://api.mwmbl.org/api/v2/search/?${params}`
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const data: SearchResponse = await res.json();
         setResults(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Request failed");
