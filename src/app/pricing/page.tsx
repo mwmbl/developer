@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { AlertCircle } from "lucide-react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { PricingCard, PricingTier } from "@/components/PricingCard";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { createCheckout } from "@/lib/api";
+import { createCheckout, ApiError } from "@/lib/api";
 
 const TIERS: PricingTier[] = [
   {
@@ -92,9 +93,11 @@ const TIERS: PricingTier[] = [
 export default function PricingPage() {
   const { user } = useAuth();
   const [checkoutLoading, setCheckoutLoading] = useState<"starter" | "pro" | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const handleCheckout = async (plan: "starter" | "pro") => {
     setCheckoutLoading(plan);
+    setCheckoutError(null);
     try {
       const successUrl = `${window.location.origin}/dashboard?upgraded=true`;
       const { checkout_url } = await createCheckout(plan, window.location.origin, successUrl);
@@ -106,7 +109,7 @@ export default function PricingPage() {
         window.location.href = successUrl;
       });
     } catch (err) {
-      console.error("Checkout failed:", err);
+      setCheckoutError(err instanceof ApiError ? err.message : "Checkout failed. Please try again.");
     } finally {
       setCheckoutLoading(null);
     }
@@ -204,6 +207,13 @@ export default function PricingPage() {
             return <PricingCard key={tier.name} tier={tier} index={i} />;
           })}
         </div>
+
+        {checkoutError && (
+          <p className="text-center text-xs text-destructive mt-4 flex items-center justify-center gap-1.5">
+            <AlertCircle size={13} />
+            {checkoutError}
+          </p>
+        )}
 
         {/* Fine print */}
         <motion.p

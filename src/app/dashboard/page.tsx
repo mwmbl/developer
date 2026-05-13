@@ -145,10 +145,12 @@ function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUp
   const [isPendingCancellation, setIsPendingCancellation] = useState(
     sub.status !== "active" && sub.status !== "canceled" && sub.status !== "free"
   );
+  const [periodEnd, setPeriodEnd] = useState(sub.current_period_end);
 
   const otherPlan: "starter" | "pro" = effectivePlan === "starter" ? "pro" : "starter";
   const otherPlanLabel = otherPlan === "starter" ? "Starter — $10/mo" : "Pro — $25/mo";
 
+  const [confirmChangePlan, setConfirmChangePlan] = useState(false);
   const [changingPlan, setChangingPlan] = useState(false);
   const [changePlanBanner, setChangePlanBanner] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -164,6 +166,7 @@ function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUp
       onUpdate(updated);
       const newPlanLabel = otherPlan === "starter" ? "Starter" : "Pro";
       setEffectivePlan(otherPlan);
+      setConfirmChangePlan(false);
       setChangePlanBanner(`Switched to ${newPlanLabel}. Proration will be applied to your next invoice.`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to change plan.");
@@ -179,6 +182,7 @@ function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUp
       const updated = await cancelSubscription();
       onUpdate(updated);
       setIsPendingCancellation(true);
+      setPeriodEnd(updated.current_period_end);
       setConfirmCancel(false);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to cancel subscription.");
@@ -220,6 +224,7 @@ function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUp
       <AnimatePresence>
         {changePlanBanner && (
           <motion.div
+            key={effectivePlan}
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
@@ -233,24 +238,44 @@ function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUp
         )}
       </AnimatePresence>
 
-      {isPendingCancellation && sub.current_period_end && (
+      {isPendingCancellation && periodEnd && (
         <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 border border-amber-500/30 bg-amber-500/10 rounded-sm px-4 py-3">
           <AlertCircle size={13} className="shrink-0" />
           Your subscription is scheduled to cancel on{" "}
-          {new Date(sub.current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.
+          {new Date(periodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.
         </div>
       )}
 
       <div className="flex flex-col sm:flex-row gap-3">
         {!isPendingCancellation && (
-          <button
-            onClick={() => void handleChangePlan()}
-            disabled={changingPlan || cancelling || uncancelling}
-            className="flex-1 px-4 py-2 border border-accent-text text-accent-text text-xs font-bold rounded-sm hover:bg-accent-text hover:text-background transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
-          >
-            {changingPlan && <Loader2 size={12} className="animate-spin" />}
-            Switch to {otherPlanLabel}
-          </button>
+          confirmChangePlan ? (
+            <div className="flex-1 flex items-center justify-center gap-3 border border-accent-text/30 rounded-sm px-4 py-2">
+              <span className="text-xs text-muted-foreground">Switch to {otherPlanLabel}?</span>
+              <button
+                onClick={() => void handleChangePlan()}
+                disabled={changingPlan}
+                className="text-xs font-semibold text-accent-text hover:underline disabled:opacity-50 flex items-center gap-1"
+              >
+                {changingPlan && <Loader2 size={12} className="animate-spin" />}
+                Confirm
+              </button>
+              <span className="text-muted-foreground/40">/</span>
+              <button
+                onClick={() => setConfirmChangePlan(false)}
+                className="text-xs font-semibold text-muted-foreground hover:underline"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmChangePlan(true)}
+              disabled={changingPlan || cancelling || uncancelling}
+              className="flex-1 px-4 py-2 border border-accent-text text-accent-text text-xs font-bold rounded-sm hover:bg-accent-text hover:text-background transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+            >
+              Switch to {otherPlanLabel}
+            </button>
+          )
         )}
 
         {isPendingCancellation ? (
@@ -609,7 +634,7 @@ function DashboardContent() {
       )}
 
       {/* Plan management for paid users */}
-      {sub && (user.plan === "starter" || user.plan === "pro") && (
+      {sub && (sub.plan === "starter" || sub.plan === "pro") && (
         <SubscriptionManagementCard
           sub={sub}
           onUpdate={(updated) => { setSub(updated); void refreshUser(); }}
