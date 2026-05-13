@@ -212,4 +212,19 @@ export async function createCheckout(plan: "starter" | "pro", embedOrigin?: stri
   });
 }
 
+export async function cancelSubscription(): Promise<Subscription> {
+  return authedFetch<Subscription>("/api/v1/platform/billing/cancel", { method: "POST" });
+}
+
+export async function uncancelSubscription(): Promise<Subscription> {
+  return authedFetch<Subscription>("/api/v1/platform/billing/uncancel", { method: "POST" });
+}
+
+export async function changePlan(plan: "starter" | "pro"): Promise<Subscription> {
+  return authedFetch<Subscription>("/api/v1/platform/billing/change-plan", {
+    method: "POST",
+    body: JSON.stringify({ plan }),
+  });
+}
+
 export { TOKEN_STORAGE };
