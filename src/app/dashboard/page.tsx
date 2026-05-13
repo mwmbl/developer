@@ -139,11 +139,13 @@ function UpgradeBanner({ onCheckout, canUpgrade }: { onCheckout: (plan: "starter
 }
 
 function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUpdate: (sub: Subscription) => void }) {
-  const isPendingCancellation = sub.status !== "active" && sub.status !== "canceled" && sub.status !== "free";
-
-  // The change-plan response still reflects the old plan (new tier arrives via webhook),
-  // so we track it optimistically to update the button immediately.
+  // Both plan and cancellation state are tracked optimistically — the API responses
+  // still reflect pre-webhook state, so we can't rely on sub.status/sub.plan directly.
   const [effectivePlan, setEffectivePlan] = useState(sub.plan);
+  const [isPendingCancellation, setIsPendingCancellation] = useState(
+    sub.status !== "active" && sub.status !== "canceled" && sub.status !== "free"
+  );
+
   const otherPlan: "starter" | "pro" = effectivePlan === "starter" ? "pro" : "starter";
   const otherPlanLabel = otherPlan === "starter" ? "Starter — $10/mo" : "Pro — $25/mo";
 
@@ -176,6 +178,7 @@ function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUp
     try {
       const updated = await cancelSubscription();
       onUpdate(updated);
+      setIsPendingCancellation(true);
       setConfirmCancel(false);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to cancel subscription.");
@@ -190,6 +193,7 @@ function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUp
     try {
       const updated = await uncancelSubscription();
       onUpdate(updated);
+      setIsPendingCancellation(false);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to restore subscription.");
     } finally {
@@ -199,7 +203,12 @@ function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUp
 
   return (
     <div className="border border-border bg-card rounded-sm p-6 flex flex-col gap-5">
-      <h2 className="text-sm font-semibold text-foreground">Manage subscription</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-foreground">Manage subscription</h2>
+        <span className={`px-2 py-0.5 rounded-sm text-xs font-bold uppercase tracking-wide ${PLAN_BADGE[effectivePlan] ?? PLAN_BADGE.free}`}>
+          {effectivePlan}
+        </span>
+      </div>
 
       {error && (
         <div className="flex items-center gap-2 text-xs text-destructive">
@@ -233,14 +242,16 @@ function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUp
       )}
 
       <div className="flex flex-col sm:flex-row gap-3">
-        <button
-          onClick={() => void handleChangePlan()}
-          disabled={changingPlan || cancelling || uncancelling}
-          className="flex-1 px-4 py-2 border border-accent-text text-accent-text text-xs font-bold rounded-sm hover:bg-accent-text hover:text-background transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
-        >
-          {changingPlan && <Loader2 size={12} className="animate-spin" />}
-          Switch to {otherPlanLabel}
-        </button>
+        {!isPendingCancellation && (
+          <button
+            onClick={() => void handleChangePlan()}
+            disabled={changingPlan || cancelling || uncancelling}
+            className="flex-1 px-4 py-2 border border-accent-text text-accent-text text-xs font-bold rounded-sm hover:bg-accent-text hover:text-background transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+          >
+            {changingPlan && <Loader2 size={12} className="animate-spin" />}
+            Switch to {otherPlanLabel}
+          </button>
+        )}
 
         {isPendingCancellation ? (
           <button
