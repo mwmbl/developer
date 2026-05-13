@@ -140,10 +140,15 @@ function UpgradeBanner({ onCheckout, canUpgrade }: { onCheckout: (plan: "starter
 
 function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUpdate: (sub: Subscription) => void }) {
   const isPendingCancellation = sub.status !== "active" && sub.status !== "canceled" && sub.status !== "free";
-  const otherPlan: "starter" | "pro" = sub.plan === "starter" ? "pro" : "starter";
+
+  // The change-plan response still reflects the old plan (new tier arrives via webhook),
+  // so we track it optimistically to update the button immediately.
+  const [effectivePlan, setEffectivePlan] = useState(sub.plan);
+  const otherPlan: "starter" | "pro" = effectivePlan === "starter" ? "pro" : "starter";
   const otherPlanLabel = otherPlan === "starter" ? "Starter — $10/mo" : "Pro — $25/mo";
 
   const [changingPlan, setChangingPlan] = useState(false);
+  const [changePlanBanner, setChangePlanBanner] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [uncancelling, setUncancelling] = useState(false);
@@ -155,6 +160,9 @@ function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUp
     try {
       const updated = await changePlan(otherPlan);
       onUpdate(updated);
+      const newPlanLabel = otherPlan === "starter" ? "Starter" : "Pro";
+      setEffectivePlan(otherPlan);
+      setChangePlanBanner(`Switched to ${newPlanLabel}. Proration will be applied to your next invoice.`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to change plan.");
     } finally {
@@ -199,6 +207,22 @@ function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUp
           {error}
         </div>
       )}
+
+      <AnimatePresence>
+        {changePlanBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="flex items-center justify-between gap-3 border border-accent-text/30 bg-accent-text/10 rounded-sm px-4 py-3"
+          >
+            <p className="text-xs text-accent-text font-medium">{changePlanBanner}</p>
+            <button onClick={() => setChangePlanBanner(null)}>
+              <X size={13} className="text-accent-text/60 hover:text-accent-text" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {isPendingCancellation && sub.current_period_end && (
         <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 border border-amber-500/30 bg-amber-500/10 rounded-sm px-4 py-3">
