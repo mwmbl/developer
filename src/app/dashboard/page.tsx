@@ -11,7 +11,8 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import {
   getSubscription, listApiKeys, createApiKey, deleteApiKey,
-  createCheckout, ApiError, Subscription, ApiKey,
+  createCheckout, cancelSubscription, uncancelSubscription, changePlan,
+  ApiError, Subscription, ApiKey,
 } from "@/lib/api";
 import Link from "next/link";
 
@@ -132,6 +133,128 @@ function UpgradeBanner({ onCheckout, canUpgrade }: { onCheckout: (plan: "starter
           Pro — $25/mo
         </button>
       </div>
+      </div>
+    </div>
+  );
+}
+
+function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUpdate: (sub: Subscription) => void }) {
+  const isPendingCancellation = sub.status !== "active" && sub.status !== "canceled" && sub.status !== "free";
+  const otherPlan: "starter" | "pro" = sub.plan === "starter" ? "pro" : "starter";
+  const otherPlanLabel = otherPlan === "starter" ? "Starter — $10/mo" : "Pro — $25/mo";
+
+  const [changingPlan, setChangingPlan] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [uncancelling, setUncancelling] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleChangePlan = async () => {
+    setChangingPlan(true);
+    setError(null);
+    try {
+      const updated = await changePlan(otherPlan);
+      onUpdate(updated);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to change plan.");
+    } finally {
+      setChangingPlan(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    setCancelling(true);
+    setError(null);
+    try {
+      const updated = await cancelSubscription();
+      onUpdate(updated);
+      setConfirmCancel(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to cancel subscription.");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleUncancel = async () => {
+    setUncancelling(true);
+    setError(null);
+    try {
+      const updated = await uncancelSubscription();
+      onUpdate(updated);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to restore subscription.");
+    } finally {
+      setUncancelling(false);
+    }
+  };
+
+  return (
+    <div className="border border-border bg-card rounded-sm p-6 flex flex-col gap-5">
+      <h2 className="text-sm font-semibold text-foreground">Manage subscription</h2>
+
+      {error && (
+        <div className="flex items-center gap-2 text-xs text-destructive">
+          <AlertCircle size={13} />
+          {error}
+        </div>
+      )}
+
+      {isPendingCancellation && sub.current_period_end && (
+        <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 border border-amber-500/30 bg-amber-500/10 rounded-sm px-4 py-3">
+          <AlertCircle size={13} className="shrink-0" />
+          Your subscription is scheduled to cancel on{" "}
+          {new Date(sub.current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        <button
+          onClick={() => void handleChangePlan()}
+          disabled={changingPlan || cancelling || uncancelling}
+          className="flex-1 px-4 py-2 border border-accent-text text-accent-text text-xs font-bold rounded-sm hover:bg-accent-text hover:text-background transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+        >
+          {changingPlan && <Loader2 size={12} className="animate-spin" />}
+          Switch to {otherPlanLabel}
+        </button>
+
+        {isPendingCancellation ? (
+          <button
+            onClick={() => void handleUncancel()}
+            disabled={changingPlan || cancelling || uncancelling}
+            className="flex-1 px-4 py-2 border border-border text-muted-foreground text-xs font-bold rounded-sm hover:border-accent-text hover:text-accent-text transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+          >
+            {uncancelling && <Loader2 size={12} className="animate-spin" />}
+            Keep subscription
+          </button>
+        ) : confirmCancel ? (
+          <div className="flex-1 flex items-center justify-center gap-3 border border-destructive/30 rounded-sm px-4 py-2">
+            <span className="text-xs text-muted-foreground">Cancel at period end?</span>
+            <button
+              onClick={() => void handleCancel()}
+              disabled={cancelling}
+              className="text-xs font-semibold text-destructive hover:underline disabled:opacity-50 flex items-center gap-1"
+            >
+              {cancelling && <Loader2 size={12} className="animate-spin" />}
+              Yes, cancel
+            </button>
+            <span className="text-muted-foreground/40">/</span>
+            <button
+              onClick={() => setConfirmCancel(false)}
+              className="text-xs font-semibold text-muted-foreground hover:underline"
+            >
+              Keep it
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmCancel(true)}
+            disabled={changingPlan || cancelling || uncancelling}
+            className="flex-1 px-4 py-2 border border-border text-muted-foreground text-xs font-bold rounded-sm hover:border-destructive hover:text-destructive transition-colors disabled:opacity-50"
+          >
+            Cancel subscription
+          </button>
+        )}
       </div>
     </div>
   );
@@ -448,6 +571,14 @@ function DashboardContent() {
       {/* Upgrade banner for free users */}
       {user.plan === "free" && (
         <UpgradeBanner onCheckout={handleCheckout} canUpgrade={hasAgreedToTerms} />
+      )}
+
+      {/* Plan management for paid users */}
+      {sub && (user.plan === "starter" || user.plan === "pro") && (
+        <SubscriptionManagementCard
+          sub={sub}
+          onUpdate={(updated) => { setSub(updated); void refreshUser(); }}
+        />
       )}
 
       {/* API Keys */}
