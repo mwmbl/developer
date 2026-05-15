@@ -90,7 +90,7 @@ export default function PrivacyPage() {
               API Privacy Policy
             </h1>
             <p className="text-sm text-muted-foreground">
-              Effective Date: [DATE]
+              Effective Date: 15th May 2026
             </p>
             <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
               This policy explains how Mwmbl Foundation, a private company

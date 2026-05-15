@@ -55,7 +55,7 @@ export default function TermsPage() {
               API Terms and Conditions
             </h1>
             <p className="text-sm text-muted-foreground">
-              Effective Date: [DATE]
+              Effective Date: 15th May 2026
             </p>
             <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
               These Terms and Conditions govern access to and use of the Mwmbl
