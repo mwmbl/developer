@@ -2,14 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { GitFork, ExternalLink, Menu, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 
 export function Nav() {
-  const pathname = usePathname();
   const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const close = () => setMenuOpen(false);
@@ -38,14 +36,12 @@ export function Nav() {
 
         {/* Desktop links */}
         <div className="hidden sm:flex items-center gap-4 text-sm text-muted-foreground">
-          <Link
-            href="/pricing"
-            className={`hover:text-foreground transition-colors ${
-              pathname === "/pricing" ? "text-foreground" : ""
-            }`}
+          <a
+            href="/#pricing"
+            className="hover:text-foreground transition-colors"
           >
             Pricing
-          </Link>
+          </a>
           <a
             href="https://mwmbl.org"
             target="_blank"
@@ -121,15 +117,13 @@ export function Nav() {
             transition={{ duration: 0.18 }}
             className="sm:hidden absolute top-full left-0 right-0 z-50 border-b border-border bg-background px-6 py-4 flex flex-col gap-4 text-sm text-muted-foreground"
           >
-            <Link
-              href="/pricing"
+            <a
+              href="/#pricing"
               onClick={close}
-              className={`hover:text-foreground transition-colors ${
-                pathname === "/pricing" ? "text-foreground" : ""
-              }`}
+              className="hover:text-foreground transition-colors"
             >
               Pricing
-            </Link>
+            </a>
             <a
               href="https://mwmbl.org"
               target="_blank"
