@@ -23,7 +23,7 @@ export function Footer() {
           <Link href="/privacy" className="hover:text-muted-foreground transition-colors">
             Privacy
           </Link>
-          <span className="font-mono">
+          <span className="hidden sm:inline font-mono">
             <span className="text-accent-text">$</span> curl "https://api.mwmbl.org/api/v2/search/?q=mwmbl"
           </span>
         </div>
