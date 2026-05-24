@@ -3,14 +3,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { AlertCircle } from "lucide-react";
-import { Nav } from "@/components/Nav";
-import { Footer } from "@/components/Footer";
-import { PricingCard, PricingTier } from "@/components/PricingCard";
 import Link from "next/link";
+import { PricingCard, PricingTier } from "@/components/PricingCard";
 import { useAuth } from "@/lib/auth-context";
 import { createCheckout, ApiError } from "@/lib/api";
 
-const TIERS: PricingTier[] = [
+export const TIERS: PricingTier[] = [
   {
     name: "Anonymous",
     price: "Free",
@@ -90,7 +88,7 @@ const TIERS: PricingTier[] = [
   },
 ];
 
-export default function PricingPage() {
+export function PricingSection() {
   const { user } = useAuth();
   const [checkoutLoading, setCheckoutLoading] = useState<"starter" | "pro" | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -116,45 +114,7 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <Nav />
-
-      {/* Hero */}
-      <section className="flex flex-col items-center justify-center pt-20 pb-12 px-4 relative overflow-hidden">
-        {/* Grid background */}
-        <div
-          className="absolute inset-0 opacity-[0.03] pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(var(--color-foreground) 1px, transparent 1px), linear-gradient(90deg, var(--color-foreground) 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-          }}
-        />
-        {/* Glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[200px] rounded-full bg-brand-gradient opacity-[0.06] blur-3xl pointer-events-none" />
-
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="text-center relative z-10"
-        >
-          <h1
-            className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-foreground mb-4"
-            style={{ fontFamily: "'Hind Vadodara', sans-serif" }}
-          >
-            Simple, transparent pricing
-          </h1>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Start for free — no credit card, no sign-up required. Upgrade when
-            you need more.{" "}
-            <span className="text-foreground font-semibold">
-              All plans share the same fast, ethical search index.
-            </span>
-          </p>
-        </motion.div>
-      </section>
-
+    <>
       {/* Anonymous tier callout */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -215,7 +175,6 @@ export default function PricingPage() {
           </p>
         )}
 
-        {/* Fine print */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -261,8 +220,6 @@ export default function PricingPage() {
           ))}
         </div>
       </motion.section>
-
-      <Footer />
-    </div>
+    </>
   );
 }

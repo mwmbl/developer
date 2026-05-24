@@ -5,6 +5,7 @@ import { TypingHero } from "@/components/TypingHero";
 import { ApiDemo } from "@/components/ApiDemo";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
+import { PricingSection } from "@/components/PricingSection";
 
 export default function Home() {
   return (
@@ -12,7 +13,7 @@ export default function Home() {
       <Nav />
 
       {/* ── Hero ────────────────────────────────────────────────────── */}
-      <section className="flex flex-col items-center justify-center pt-20 pb-16 px-4 relative overflow-hidden">
+      <section id="demo" className="flex flex-col items-center justify-center pt-20 pb-16 px-4 relative overflow-hidden">
         {/* Subtle grid background */}
         <div
           className="absolute inset-0 opacity-[0.03] pointer-events-none"
@@ -78,6 +79,27 @@ export default function Home() {
           ))}
         </div>
       </motion.section>
+
+      {/* ── Pricing ──────────────────────────────────────────────────── */}
+      <section id="pricing" className="border-t border-border/50">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="text-center pt-16 pb-10 px-4"
+          style={{ fontFamily: "'Hind Vadodara', sans-serif" }}
+        >
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-foreground mb-4">
+            Simple, transparent pricing
+          </h2>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
+            Start for free — no credit card, no sign-up required. Upgrade when you need more.{" "}
+            <span className="text-foreground font-semibold">All plans share the same fast, ethical search index.</span>
+          </p>
+        </motion.div>
+        <PricingSection />
+      </section>
 
       <Footer />
     </div>
