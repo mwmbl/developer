@@ -3,7 +3,6 @@
 import { useState, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -27,17 +26,13 @@ function GithubIcon({ size = 16 }: { size?: number }) {
 const VALUE_PROPS = [
   "1,000 free requests/month — no sign-up required",
   "2,000 requests/month free with an account",
-  "Up to 50,000 requests/month on paid plans",
+  "Pay-as-you-go beyond that — just $5 per 1,000 requests",
   "Open-source, ethical, community-built index",
   "Fast global search — under 200 ms typical latency",
   "No tracking, no ads, no lock-in",
 ];
 
 function SignUpForm() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const plan = searchParams.get("plan");
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -66,9 +61,6 @@ function SignUpForm() {
     try {
       await register(email, password, ["TERMS_OF_SERVICE_API"]);
       setSubmitted(true);
-      if (plan) {
-        router.push(`/signin?plan=${plan}`);
-      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -278,7 +270,7 @@ export default function SignUpPage() {
 
             <p className="text-xs text-muted-foreground/50">
               Need more?{" "}
-              <Link href="/pricing" className="text-accent-text hover:underline">
+              <Link href="/#pricing" className="text-accent-text hover:underline">
                 View all pricing plans →
               </Link>
             </p>

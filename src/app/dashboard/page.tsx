@@ -11,18 +11,17 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import {
   getSubscription, listApiKeys, createApiKey, deleteApiKey,
-  createCheckout, cancelSubscription, uncancelSubscription, changePlan,
+  createCheckout, cancelSubscription, uncancelSubscription, updateSpendLimit,
   ApiError, Subscription, ApiKey,
 } from "@/lib/api";
+import { SPEND_LIMIT_PRESETS_CENTS, formatUsd } from "@/lib/pricing";
 import Link from "next/link";
 
 const PLAN_BADGE: Record<string, string> = {
   anonymous: "bg-muted text-muted-foreground",
   free: "bg-muted text-muted-foreground",
-  starter: "bg-accent-text/15 text-accent-text",
-  pro: "bg-accent-text/25 text-accent-text",
-  enterprise: "bg-primary/20 text-primary-foreground",
 };
+const FALLBACK_PLAN_BADGE = "bg-accent-text/15 text-accent-text";
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -72,6 +71,14 @@ function UsageCard({ sub }: { sub: Subscription }) {
             style={{ width: `${pct}%` }}
           />
         </div>
+        {sub.max_monthly_spend_cents > 0 && (
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Estimated bill this period</span>
+            <span className="font-mono text-foreground">
+              {formatUsd(sub.estimated_cost_cents)} / {formatUsd(sub.max_monthly_spend_cents)} cap
+            </span>
+          </div>
+        )}
         {sub.current_period_end && (
           <p className="text-xs text-muted-foreground">
             Resets {new Date(sub.current_period_end).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
@@ -82,97 +89,53 @@ function UsageCard({ sub }: { sub: Subscription }) {
   );
 }
 
-function UpgradeBanner({ onCheckout, canUpgrade }: { onCheckout: (plan: "starter" | "pro") => Promise<void>; canUpgrade: boolean }) {
-  const [loading, setLoading] = useState<"starter" | "pro" | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleClick = async (plan: "starter" | "pro") => {
-    setError(null);
-    setLoading(plan);
-    try {
-      await onCheckout(plan);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  return (
-    <div className="border border-border bg-card rounded-sm p-6 flex flex-col gap-4">
-      {error && (
-        <div className="flex items-center gap-2 text-xs text-destructive">
-          <AlertCircle size={13} />
-          {error}
-        </div>
-      )}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-      <div className="flex-1">
-        <p className="text-sm font-semibold text-foreground mb-1">Upgrade your plan</p>
-        <p className="text-xs text-muted-foreground">
-          Get more requests per month and unlock higher rate limits.
-        </p>
-      </div>
-      <div className="flex gap-2 shrink-0">
-        <button
-          onClick={() => void handleClick("starter")}
-          disabled={loading !== null || !canUpgrade}
-          title={!canUpgrade ? "Accept the Terms of Service to upgrade" : undefined}
-          className="px-4 py-2 border border-accent-text text-accent-text text-xs font-bold rounded-sm hover:bg-accent-text hover:text-background transition-colors disabled:opacity-50 flex items-center gap-1.5"
-        >
-          {loading === "starter" && <Loader2 size={12} className="animate-spin" />}
-          Starter — $10/mo
-        </button>
-        <button
-          onClick={() => void handleClick("pro")}
-          disabled={loading !== null || !canUpgrade}
-          title={!canUpgrade ? "Accept the Terms of Service to upgrade" : undefined}
-          className="px-4 py-2 bg-accent-text text-background text-xs font-bold rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1.5"
-        >
-          {loading === "pro" && <Loader2 size={12} className="animate-spin" />}
-          Pro — $25/mo
-        </button>
-      </div>
-      </div>
-    </div>
-  );
-}
-
-function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUpdate: (sub: Subscription) => void }) {
-  // Both plan and cancellation state are tracked optimistically — the API responses
-  // still reflect pre-webhook state, so we can't rely on sub.status/sub.plan directly.
-  const [effectivePlan, setEffectivePlan] = useState(sub.plan);
+function SpendLimitCard({ sub, canUpgrade, onUpdate }: { sub: Subscription; canUpgrade: boolean; onUpdate: (sub: Subscription) => void }) {
+  // Cap and cancellation state are tracked optimistically — API responses still
+  // reflect pre-webhook state, so we can't rely on sub.status directly right after a change.
+  const [currentCapCents, setCurrentCapCents] = useState(sub.max_monthly_spend_cents);
   const [isPendingCancellation, setIsPendingCancellation] = useState(
     sub.status !== "active" && sub.status !== "canceled" && sub.status !== "free"
   );
   const [periodEnd, setPeriodEnd] = useState(sub.current_period_end);
 
-  const otherPlan: "starter" | "pro" = effectivePlan === "starter" ? "pro" : "starter";
-  const otherPlanLabel = otherPlan === "starter" ? "Starter — $10/mo" : "Pro — $25/mo";
-
-  const [confirmChangePlan, setConfirmChangePlan] = useState(false);
-  const [changingPlan, setChangingPlan] = useState(false);
-  const [changePlanBanner, setChangePlanBanner] = useState<string | null>(null);
+  const [customDollars, setCustomDollars] = useState("");
+  const [loadingCents, setLoadingCents] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [uncancelling, setUncancelling] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleChangePlan = async () => {
-    setChangingPlan(true);
+  const handleSetCap = async (cents: number) => {
     setError(null);
+    setLoadingCents(cents);
     try {
-      const updated = await changePlan(otherPlan);
+      if (cents > 0 && !sub.polar_customer_id) {
+        const successUrl = `${window.location.origin}/dashboard?billing=true&pendingCapCents=${cents}`;
+        const { checkout_url } = await createCheckout(window.location.origin, successUrl);
+        const { PolarEmbedCheckout } = await import("@polar-sh/checkout/embed");
+        const checkout = await PolarEmbedCheckout.create(checkout_url);
+        checkout.addEventListener("success", (event) => {
+          event.preventDefault();
+          checkout.close();
+          window.location.href = successUrl;
+        });
+        return;
+      }
+      const updated = await updateSpendLimit(cents);
       onUpdate(updated);
-      const newPlanLabel = otherPlan === "starter" ? "Starter" : "Pro";
-      setEffectivePlan(otherPlan);
-      setConfirmChangePlan(false);
-      setChangePlanBanner(`Switched to ${newPlanLabel}. Proration will be applied to your next invoice.`);
+      setCurrentCapCents(cents);
+      setCustomDollars("");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to change plan.");
+      setError(err instanceof ApiError ? err.message : "Failed to update spend limit.");
     } finally {
-      setChangingPlan(false);
+      setLoadingCents(null);
     }
+  };
+
+  const handleCustomSubmit = () => {
+    const dollars = parseFloat(customDollars);
+    if (!Number.isFinite(dollars) || dollars < 0) return;
+    void handleSetCap(Math.round(dollars * 100));
   };
 
   const handleCancel = async () => {
@@ -185,7 +148,7 @@ function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUp
       setPeriodEnd(updated.current_period_end);
       setConfirmCancel(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to cancel subscription.");
+      setError(err instanceof ApiError ? err.message : "Failed to cancel pay-as-you-go billing.");
     } finally {
       setCancelling(false);
     }
@@ -199,19 +162,25 @@ function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUp
       onUpdate(updated);
       setIsPendingCancellation(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to restore subscription.");
+      setError(err instanceof ApiError ? err.message : "Failed to restore billing.");
     } finally {
       setUncancelling(false);
     }
   };
 
+  const busy = loadingCents !== null || cancelling || uncancelling;
+
   return (
     <div className="border border-border bg-card rounded-sm p-6 flex flex-col gap-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-foreground">Manage subscription</h2>
-        <span className={`px-2 py-0.5 rounded-sm text-xs font-bold uppercase tracking-wide ${PLAN_BADGE[effectivePlan] ?? PLAN_BADGE.free}`}>
-          {effectivePlan}
-        </span>
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Pay-as-you-go billing</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            {currentCapCents > 0
+              ? `Beyond your free 2,000 requests, usage is billed at $5 per 1,000 requests, up to a $${(currentCapCents / 100).toFixed(0)} monthly cap.`
+              : "You're on the free tier — 2,000 requests/month, hard-capped. Set a spend cap to unlock more."}
+          </p>
+        </div>
       </div>
 
       {error && (
@@ -221,74 +190,82 @@ function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUp
         </div>
       )}
 
-      <AnimatePresence>
-        {changePlanBanner && (
-          <motion.div
-            key={effectivePlan}
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex items-center justify-between gap-3 border border-accent-text/30 bg-accent-text/10 rounded-sm px-4 py-3"
-          >
-            <p className="text-xs text-accent-text font-medium">{changePlanBanner}</p>
-            <button onClick={() => setChangePlanBanner(null)}>
-              <X size={13} className="text-accent-text/60 hover:text-accent-text" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {isPendingCancellation && periodEnd && (
         <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 border border-amber-500/30 bg-amber-500/10 rounded-sm px-4 py-3">
           <AlertCircle size={13} className="shrink-0" />
-          Your subscription is scheduled to cancel on{" "}
-          {new Date(periodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.
+          Your spend cap remains active until{" "}
+          {new Date(periodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}, then
+          your account returns to the free 2,000 req/month limit.
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        {!isPendingCancellation && (
-          confirmChangePlan ? (
-            <div className="flex-1 flex items-center justify-center gap-3 border border-accent-text/30 rounded-sm px-4 py-2">
-              <span className="text-xs text-muted-foreground">Switch to {otherPlanLabel}?</span>
+      {!isPendingCancellation && (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2">
+            {SPEND_LIMIT_PRESETS_CENTS.map((cents) => (
               <button
-                onClick={() => void handleChangePlan()}
-                disabled={changingPlan}
-                className="text-xs font-semibold text-accent-text hover:underline disabled:opacity-50 flex items-center gap-1"
+                key={cents}
+                onClick={() => void handleSetCap(cents)}
+                disabled={busy || !canUpgrade || currentCapCents === cents}
+                title={!canUpgrade ? "Accept the Terms of Service to change your spend cap" : undefined}
+                className="px-4 py-2 border border-accent-text text-accent-text text-xs font-bold rounded-sm hover:bg-accent-text hover:text-background transition-colors disabled:opacity-50 flex items-center gap-1.5"
               >
-                {changingPlan && <Loader2 size={12} className="animate-spin" />}
-                Confirm
+                {loadingCents === cents && <Loader2 size={12} className="animate-spin" />}
+                {formatUsd(cents)} cap
               </button>
-              <span className="text-muted-foreground/40">/</span>
+            ))}
+            {currentCapCents > 0 && (
               <button
-                onClick={() => setConfirmChangePlan(false)}
-                className="text-xs font-semibold text-muted-foreground hover:underline"
+                onClick={() => void handleSetCap(0)}
+                disabled={busy || !canUpgrade}
+                className="px-4 py-2 border border-border text-muted-foreground text-xs font-bold rounded-sm hover:border-accent-text hover:text-accent-text transition-colors disabled:opacity-50 flex items-center gap-1.5"
               >
-                Cancel
+                {loadingCents === 0 && <Loader2 size={12} className="animate-spin" />}
+                Free tier only
               </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setConfirmChangePlan(true)}
-              disabled={changingPlan || cancelling || uncancelling}
-              className="flex-1 px-4 py-2 border border-accent-text text-accent-text text-xs font-bold rounded-sm hover:bg-accent-text hover:text-background transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
-            >
-              Switch to {otherPlanLabel}
-            </button>
-          )
-        )}
+            )}
+          </div>
 
-        {isPendingCancellation ? (
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleCustomSubmit(); }}
+            className="flex gap-2"
+          >
+            <div className="relative flex-1 max-w-[160px]">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={customDollars}
+                onChange={(e) => setCustomDollars(e.target.value)}
+                placeholder="Custom (0 to pause)"
+                disabled={busy || !canUpgrade}
+                className="w-full bg-transparent border border-border rounded-sm pl-6 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-accent-text transition-colors font-mono disabled:opacity-50"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={busy || !canUpgrade || !customDollars}
+              className="px-4 py-2 bg-accent-text text-background text-xs font-bold rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1.5"
+            >
+              Set cap
+            </button>
+          </form>
+        </div>
+      )}
+
+      {sub.polar_customer_id && (
+        isPendingCancellation ? (
           <button
             onClick={() => void handleUncancel()}
-            disabled={changingPlan || cancelling || uncancelling}
-            className="flex-1 px-4 py-2 border border-border text-muted-foreground text-xs font-bold rounded-sm hover:border-accent-text hover:text-accent-text transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+            disabled={busy}
+            className="w-fit px-4 py-2 border border-border text-muted-foreground text-xs font-bold rounded-sm hover:border-accent-text hover:text-accent-text transition-colors disabled:opacity-50 flex items-center gap-1.5"
           >
             {uncancelling && <Loader2 size={12} className="animate-spin" />}
-            Keep subscription
+            Keep pay-as-you-go billing
           </button>
         ) : confirmCancel ? (
-          <div className="flex-1 flex items-center justify-center gap-3 border border-destructive/30 rounded-sm px-4 py-2">
+          <div className="w-fit flex items-center gap-3 border border-destructive/30 rounded-sm px-4 py-2">
             <span className="text-xs text-muted-foreground">Cancel at period end?</span>
             <button
               onClick={() => void handleCancel()}
@@ -309,13 +286,13 @@ function SubscriptionManagementCard({ sub, onUpdate }: { sub: Subscription; onUp
         ) : (
           <button
             onClick={() => setConfirmCancel(true)}
-            disabled={changingPlan || cancelling || uncancelling}
-            className="flex-1 px-4 py-2 border border-border text-muted-foreground text-xs font-bold rounded-sm hover:border-destructive hover:text-destructive transition-colors disabled:opacity-50"
+            disabled={busy}
+            className="w-fit px-4 py-2 border border-border text-muted-foreground text-xs font-bold rounded-sm hover:border-destructive hover:text-destructive transition-colors disabled:opacity-50"
           >
-            Cancel subscription
+            Cancel pay-as-you-go billing
           </button>
-        )}
-      </div>
+        )
+      )}
     </div>
   );
 }
@@ -498,11 +475,13 @@ function DashboardContent() {
   const { user, loading, signOut, refreshUser, hasAgreedToTerms } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const upgraded = searchParams.get("upgraded") === "true";
+  const billing = searchParams.get("billing") === "true";
+  const pendingCapCentsParam = searchParams.get("pendingCapCents");
+  const pendingCapCents = pendingCapCentsParam ? Number(pendingCapCentsParam) : null;
 
   const [sub, setSub] = useState<Subscription | null>(null);
   const [subError, setSubError] = useState<string | null>(null);
-  const [showUpgradeBanner, setShowUpgradeBanner] = useState(upgraded);
+  const [showBillingBanner, setShowBillingBanner] = useState(billing);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -518,35 +497,41 @@ function DashboardContent() {
   }, [user]);
 
   useEffect(() => {
-    if (!upgraded) return;
+    if (!billing) return;
+    let cancelled = false;
     let attempts = 0;
     const poll = setInterval(async () => {
       attempts++;
       try {
         const latest = await getSubscription();
+        if (cancelled) return;
         setSub(latest);
-        if (latest.plan !== "free" || attempts >= 10) {
+        if (latest.polar_customer_id !== null) {
           clearInterval(poll);
+          if (pendingCapCents !== null) {
+            try {
+              const updated = await updateSpendLimit(pendingCapCents);
+              if (!cancelled) setSub(updated);
+            } catch {
+              // Leave the cap unset — the user can set it manually from the dashboard.
+            }
+          }
           void refreshUser();
+          router.replace("/dashboard");
+        } else if (attempts >= 10) {
+          clearInterval(poll);
         }
       } catch {
         if (attempts >= 10) clearInterval(poll);
       }
     }, 2000);
-    return () => clearInterval(poll);
-  }, [upgraded, refreshUser]);
+    return () => { cancelled = true; clearInterval(poll); };
+  }, [billing, pendingCapCents, refreshUser, router]);
 
-  const handleCheckout = useCallback(async (plan: "starter" | "pro") => {
-    const successUrl = `${window.location.origin}/dashboard?upgraded=true`;
-    const { checkout_url } = await createCheckout(plan, window.location.origin, successUrl);
-    const { PolarEmbedCheckout } = await import("@polar-sh/checkout/embed");
-    const checkout = await PolarEmbedCheckout.create(checkout_url);
-    checkout.addEventListener("success", (event) => {
-      event.preventDefault();
-      checkout.close();
-      window.location.href = successUrl;
-    });
-  }, []);
+  const handleUpdateSub = useCallback((updated: Subscription) => {
+    setSub(updated);
+    void refreshUser();
+  }, [refreshUser]);
 
   if (loading || !user) {
     return (
@@ -559,9 +544,9 @@ function DashboardContent() {
   return (
     <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-12 flex flex-col gap-6">
 
-      {/* Upgrade success banner */}
+      {/* Billing setup success banner */}
       <AnimatePresence>
-        {showUpgradeBanner && (
+        {showBillingBanner && (
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -569,9 +554,9 @@ function DashboardContent() {
             className="border border-accent-text/30 bg-accent-text/10 rounded-sm px-5 py-3 flex items-center justify-between gap-3"
           >
             <p className="text-sm text-accent-text font-medium">
-              Your plan has been upgraded! It may take a moment to reflect.
+              Billing is set up! It may take a moment to reflect.
             </p>
-            <button onClick={() => setShowUpgradeBanner(false)}>
+            <button onClick={() => setShowBillingBanner(false)}>
               <X size={15} className="text-accent-text/60 hover:text-accent-text" />
             </button>
           </motion.div>
@@ -586,7 +571,7 @@ function DashboardContent() {
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">{user.email}</p>
-            <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-sm text-xs font-bold uppercase tracking-wide ${PLAN_BADGE[user.plan] ?? PLAN_BADGE.free}`}>
+            <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-sm text-xs font-bold uppercase tracking-wide ${PLAN_BADGE[user.plan] ?? FALLBACK_PLAN_BADGE}`}>
               {user.plan}
             </span>
           </div>
@@ -617,7 +602,7 @@ function DashboardContent() {
       {!hasAgreedToTerms && (
         <div className="border border-amber-500/30 bg-amber-500/10 rounded-sm px-5 py-3 flex items-center justify-between gap-3">
           <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
-            Accept our Terms of Service to create API keys or upgrade your plan.
+            Accept our Terms of Service to create API keys or turn on pay-as-you-go billing.
           </p>
           <Link
             href="/agree?next=/dashboard"
@@ -628,17 +613,9 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* Upgrade banner for free users */}
-      {user.plan === "free" && (
-        <UpgradeBanner onCheckout={handleCheckout} canUpgrade={hasAgreedToTerms} />
-      )}
-
-      {/* Plan management for paid users */}
-      {sub && (sub.plan === "starter" || sub.plan === "pro") && (
-        <SubscriptionManagementCard
-          sub={sub}
-          onUpdate={(updated) => { setSub(updated); void refreshUser(); }}
-        />
+      {/* Spend cap management */}
+      {sub && (
+        <SpendLimitCard sub={sub} canUpgrade={hasAgreedToTerms} onUpdate={handleUpdateSub} />
       )}
 
       {/* API Keys */}

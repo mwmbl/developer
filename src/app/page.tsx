@@ -94,8 +94,9 @@ export default function Home() {
             Simple, transparent pricing
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Start for free — no credit card, no sign-up required. Upgrade when you need more.{" "}
-            <span className="text-foreground font-semibold">All plans share the same fast, ethical search index.</span>
+            Start for free — no credit card, no sign-up required. When you need more, it&apos;s{" "}
+            $5 per 1,000 requests, with a spend cap you control.{" "}
+            <span className="text-foreground font-semibold">All access shares the same fast, ethical search index.</span>
           </p>
         </motion.div>
         <PricingSection />

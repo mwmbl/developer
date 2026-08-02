@@ -97,9 +97,9 @@ export default function TermsPage() {
                 </thead>
                 <tbody className="text-muted-foreground">
                   {[
+                    ["Anonymous", "1,000 requests", "1 req/s"],
                     ["Free", "2,000 requests", "5 req/s"],
-                    ["Starter", "10,000 requests", "5 req/s"],
-                    ["Pro", "50,000 requests", "5 req/s"],
+                    ["Pay as you go", "2,000 free + metered usage up to your spend cap", "5 req/s"],
                     ["Enterprise", "Custom", "Custom"],
                   ].map(([plan, quota, rate]) => (
                     <tr key={plan} className="border-b border-border/40">
@@ -119,7 +119,7 @@ export default function TermsPage() {
             </p>
             <p>
               Plan details, including pricing, are published on the{" "}
-              <Link href="/pricing" className="text-accent-text hover:underline">
+              <Link href="/#pricing" className="text-accent-text hover:underline">
                 pricing page
               </Link>
               . Enterprise enquiries should be directed to{" "}
@@ -135,23 +135,26 @@ export default function TermsPage() {
 
           <Section title="Payment and Billing">
             <p>
-              Paid plans (Starter, Pro, and Enterprise) are billed on a monthly
-              subscription basis. Payment is processed by Polar.sh on behalf of
-              Mwmbl; by subscribing to a paid plan you also agree to Polar.sh&apos;s
-              terms of service and authorise them to process your payment
-              details.
+              Pay-as-you-go usage beyond the free 2,000 requests/month is
+              metered at $5 per 1,000 requests and billed monthly in arrears,
+              up to the monthly spend cap you set in your account dashboard.
+              Payment is processed by Polar.sh on behalf of Mwmbl; by enabling
+              pay-as-you-go billing you also agree to Polar.sh&apos;s terms of
+              service and authorise them to process your payment details.
+              Enterprise plans are billed separately by invoice.
             </p>
             <p>
-              Subscriptions are billed in advance at the start of each billing
-              period. If payment fails, access may be downgraded to the Free
-              plan until payment is resolved. Mwmbl does not issue refunds for
-              partial months or unused quota except where required by applicable
-              law.
+              Metered usage is billed at the end of each billing period. If
+              payment fails, pay-as-you-go access may be suspended until
+              payment is resolved, and your account reverts to the free 2,000
+              requests/month limit. Mwmbl does not issue refunds for unused
+              quota except where required by applicable law.
             </p>
             <p>
-              To cancel a subscription, do so via your account dashboard before
-              the next billing date. Cancellation takes effect at the end of the
-              current billing period.
+              To stop pay-as-you-go billing, cancel it via your account
+              dashboard before the next billing date. Cancellation takes
+              effect at the end of the current billing period, after which
+              your account reverts to the free 2,000 requests/month limit.
             </p>
           </Section>
 

@@ -3,19 +3,17 @@
 import { useState, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { createCheckout, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
 
 function SignInForm() {
-  const searchParams = useSearchParams();
   const router = useRouter();
   const { signIn } = useAuth();
-  const plan = searchParams.get("plan") as "starter" | "pro" | null;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,20 +26,10 @@ function SignInForm() {
     try {
       const { hasAgreedToTerms: agreed } = await signIn(email, password);
       if (!agreed) {
-        const next = plan ? `/signin?plan=${plan}` : "/dashboard";
-        router.push(`/agree?next=${encodeURIComponent(next)}`);
+        router.push(`/agree?next=${encodeURIComponent("/dashboard")}`);
         return;
       }
-      if (plan === "starter" || plan === "pro") {
-        try {
-          const { checkout_url } = await createCheckout(plan);
-          window.location.href = checkout_url;
-        } catch {
-          router.push("/dashboard");
-        }
-      } else {
-        router.push("/dashboard");
-      }
+      router.push("/dashboard");
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setError("Invalid email or password.");
@@ -164,7 +152,7 @@ export default function SignInPage() {
                 <span className="text-accent-text">Build something good.</span>
               </h1>
               <p className="text-muted-foreground text-sm leading-relaxed max-w-sm">
-                Sign in to manage your API key, view usage, and upgrade your plan.
+                Sign in to manage your API key, view usage, and set up pay-as-you-go billing.
               </p>
             </div>
           </motion.div>

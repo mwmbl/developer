@@ -140,7 +140,8 @@ export async function forgotPassword(email: string): Promise<void> {
 export interface UserProfile {
   username: string;
   email: string;
-  plan: "anonymous" | "free" | "starter" | "pro" | "enterprise";
+  // Opaque — the server doesn't enumerate this anymore. Display only, don't branch UI on it.
+  plan: string;
   email_confirmed: boolean;
 }
 
@@ -149,10 +150,11 @@ export async function getMe(): Promise<UserProfile> {
 }
 
 export interface Subscription {
-  plan: string;
   status: string;
+  max_monthly_spend_cents: number;
   monthly_limit: number;
   monthly_usage: number;
+  estimated_cost_cents: number;
   current_period_end: string | null;
   polar_customer_id: string | null;
 }
@@ -201,11 +203,10 @@ export async function acceptAgreement(agreementType: string): Promise<Agreement>
   });
 }
 
-export async function createCheckout(plan: "starter" | "pro", embedOrigin?: string, successUrl?: string): Promise<{ checkout_url: string }> {
+export async function createCheckout(embedOrigin?: string, successUrl?: string): Promise<{ checkout_url: string }> {
   return authedFetch<{ checkout_url: string }>("/api/v1/platform/billing/checkout", {
     method: "POST",
     body: JSON.stringify({
-      plan,
       ...(embedOrigin ? { embed_origin: embedOrigin } : {}),
       ...(successUrl ? { success_url: successUrl } : {}),
     }),
@@ -220,10 +221,10 @@ export async function uncancelSubscription(): Promise<Subscription> {
   return authedFetch<Subscription>("/api/v1/platform/billing/uncancel", { method: "POST" });
 }
 
-export async function changePlan(plan: "starter" | "pro"): Promise<Subscription> {
-  return authedFetch<Subscription>("/api/v1/platform/billing/change-plan", {
+export async function updateSpendLimit(maxMonthlySpendCents: number): Promise<Subscription> {
+  return authedFetch<Subscription>("/api/v1/platform/billing/spend-limit", {
     method: "POST",
-    body: JSON.stringify({ plan }),
+    body: JSON.stringify({ max_monthly_spend_cents: maxMonthlySpendCents }),
   });
 }
 
