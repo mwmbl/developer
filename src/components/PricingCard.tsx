@@ -2,15 +2,18 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Check, Loader2 } from "lucide-react";
+import { Check } from "lucide-react";
+
+export interface PricingStat {
+  label: string;
+  value: string;
+}
 
 export interface PricingTier {
   name: string;
   price: string;
   priceNote?: string;
-  requests: string;
-  rateLimit: string;
-  apiKey: string;
+  stats: PricingStat[];
   features: string[];
   cta: string;
   ctaHref: string;
@@ -23,11 +26,9 @@ export interface PricingTier {
 interface PricingCardProps {
   tier: PricingTier;
   index: number;
-  onCtaClick?: () => void;
-  ctaLoading?: boolean;
 }
 
-export function PricingCard({ tier, index, onCtaClick, ctaLoading }: PricingCardProps) {
+export function PricingCard({ tier, index }: PricingCardProps) {
   const borderClass = tier.highlighted
     ? "border-accent-text"
     : "border-border";
@@ -72,18 +73,12 @@ export function PricingCard({ tier, index, onCtaClick, ctaLoading }: PricingCard
 
       {/* Key stats */}
       <div className="flex flex-col gap-2 text-sm border-t border-border pt-4">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Requests / month</span>
-          <span className="font-semibold text-foreground font-mono">{tier.requests}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Rate limit</span>
-          <span className="font-semibold text-foreground font-mono">{tier.rateLimit}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">API key</span>
-          <span className="font-semibold text-foreground font-mono">{tier.apiKey}</span>
-        </div>
+        {tier.stats.map((stat) => (
+          <div key={stat.label} className="flex justify-between">
+            <span className="text-muted-foreground">{stat.label}</span>
+            <span className="font-semibold text-foreground font-mono">{stat.value}</span>
+          </div>
+        ))}
       </div>
 
       {/* Feature list */}
@@ -97,16 +92,7 @@ export function PricingCard({ tier, index, onCtaClick, ctaLoading }: PricingCard
       </ul>
 
       {/* CTA */}
-      {onCtaClick ? (
-        <button
-          onClick={onCtaClick}
-          disabled={ctaLoading}
-          className={`w-full flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-sm transition-opacity disabled:opacity-50 ${ctaClass}`}
-        >
-          {ctaLoading && <Loader2 size={13} className="animate-spin" />}
-          {tier.cta}
-        </button>
-      ) : tier.ctaExternal ? (
+      {tier.ctaExternal ? (
         <a
           href={tier.ctaHref}
           target="_blank"

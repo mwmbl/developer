@@ -1,20 +1,20 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { PricingCard, PricingTier } from "@/components/PricingCard";
 import { useAuth } from "@/lib/auth-context";
-import { createCheckout, ApiError } from "@/lib/api";
+import { FREE_ANON_REQUESTS } from "@/lib/pricing";
 
 export const TIERS: PricingTier[] = [
   {
     name: "Anonymous",
     price: "Free",
-    requests: "1,000",
-    rateLimit: "1 req/s",
-    apiKey: "Not required",
+    stats: [
+      { label: "Requests / month", value: "1,000" },
+      { label: "Rate limit", value: "1 req/s" },
+      { label: "API key", value: "Not required" },
+    ],
     features: [
       "No sign-up needed — try the API instantly",
       "Tied to your IP address",
@@ -27,59 +27,50 @@ export const TIERS: PricingTier[] = [
   {
     name: "Free",
     price: "Free",
-    requests: "2,000",
-    rateLimit: "5 req/s",
-    apiKey: "Required",
+    stats: [
+      { label: "Requests / month", value: "2,000" },
+      { label: "Rate limit", value: "5 req/s" },
+      { label: "API key", value: "Required" },
+    ],
     features: [
       "API key for reliable, identified access",
-      "2× the anonymous quota",
+      "Hard-capped at 2,000 req/month unless you turn on pay-as-you-go",
       "Great for personal projects and prototypes",
     ],
     cta: "Get started",
     ctaHref: "/signup",
   },
   {
-    name: "Starter",
-    price: "$10",
-    priceNote: "/ month",
-    requests: "10,000",
-    rateLimit: "5 req/s",
-    apiKey: "Required",
-    features: [
-      "5× the free quota",
-      "Ideal for small production apps",
-      "Cancel any time — no commitment",
+    name: "Pay as you go",
+    price: "$5",
+    priceNote: "/ 1,000 requests",
+    stats: [
+      { label: "Free requests", value: "2,000 / mo" },
+      { label: "Rate limit", value: "5 req/s" },
+      { label: "API key", value: "Required" },
     ],
-    cta: "Sign up",
-    ctaHref: "/signup",
-  },
-  {
-    name: "Pro",
-    price: "$25",
-    priceNote: "/ month",
-    requests: "50,000",
-    rateLimit: "5 req/s",
-    apiKey: "Required",
     features: [
-      "25× the free quota",
-      "Built for growing products",
-      "Priority support",
+      "Beyond your free 2,000, pay only for what you use",
+      "Set your own monthly spend cap — never get a surprise bill",
+      "No fixed tiers: scale smoothly as you grow",
     ],
     cta: "Sign up",
     ctaHref: "/signup",
     highlighted: true,
-    badge: "Most popular",
+    badge: "Pay for what you use",
   },
   {
     name: "Enterprise",
     price: "Custom",
-    requests: "Unlimited",
-    rateLimit: "Custom",
-    apiKey: "Required",
+    stats: [
+      { label: "Requests / month", value: "Unlimited" },
+      { label: "Rate limit", value: "Custom" },
+      { label: "API key", value: "Required" },
+    ],
     features: [
-      "Volume pricing tailored to your needs",
-      "Custom rate limits",
-      "Dedicated support & SLA",
+      "Custom SLA & uptime commitments",
+      "Dedicated support & onboarding",
+      "Invoicing instead of card billing",
     ],
     cta: "Get in touch",
     ctaHref: "mailto:hello@mwmbl.org",
@@ -90,28 +81,13 @@ export const TIERS: PricingTier[] = [
 
 export function PricingSection() {
   const { user } = useAuth();
-  const [checkoutLoading, setCheckoutLoading] = useState<"starter" | "pro" | null>(null);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  const handleCheckout = async (plan: "starter" | "pro") => {
-    setCheckoutLoading(plan);
-    setCheckoutError(null);
-    try {
-      const successUrl = `${window.location.origin}/dashboard?upgraded=true`;
-      const { checkout_url } = await createCheckout(plan, window.location.origin, successUrl);
-      const { PolarEmbedCheckout } = await import("@polar-sh/checkout/embed");
-      const checkout = await PolarEmbedCheckout.create(checkout_url);
-      checkout.addEventListener("success", (event) => {
-        event.preventDefault();
-        checkout.close();
-        window.location.href = successUrl;
-      });
-    } catch (err) {
-      setCheckoutError(err instanceof ApiError ? err.message : "Checkout failed. Please try again.");
-    } finally {
-      setCheckoutLoading(null);
+  const tiers = TIERS.map((tier) => {
+    if (tier.name === "Pay as you go" && user) {
+      return { ...tier, cta: "Manage in dashboard", ctaHref: "/dashboard" };
     }
-  };
+    return tier;
+  });
 
   return (
     <>
@@ -126,7 +102,7 @@ export function PricingSection() {
           <span className="text-muted-foreground">
             <span className="text-accent-text font-semibold">Anonymous access</span>
             {" "}— the demo on our homepage uses this tier. No sign-up needed, but limited to{" "}
-            <span className="font-mono text-foreground">1,000 req/month</span> at{" "}
+            <span className="font-mono text-foreground">{FREE_ANON_REQUESTS.toLocaleString()} req/month</span> at{" "}
             <span className="font-mono text-foreground">1 req/s</span>, tied to your IP address.
           </span>
           <Link
@@ -140,40 +116,11 @@ export function PricingSection() {
 
       {/* Pricing grid */}
       <section className="flex-1 pb-20 px-4">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {TIERS.map((tier, i) => {
-            const plan = tier.name.toLowerCase() as "starter" | "pro";
-            const isPaid = plan === "starter" || plan === "pro";
-            if (isPaid && user) {
-              return (
-                <PricingCard
-                  key={tier.name}
-                  tier={tier}
-                  index={i}
-                  onCtaClick={() => void handleCheckout(plan)}
-                  ctaLoading={checkoutLoading === plan}
-                />
-              );
-            }
-            if (isPaid && !user) {
-              return (
-                <PricingCard
-                  key={tier.name}
-                  tier={{ ...tier, ctaHref: `/signup?plan=${plan}` }}
-                  index={i}
-                />
-              );
-            }
-            return <PricingCard key={tier.name} tier={tier} index={i} />;
-          })}
+        <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {tiers.map((tier, i) => (
+            <PricingCard key={tier.name} tier={tier} index={i} />
+          ))}
         </div>
-
-        {checkoutError && (
-          <p className="text-center text-xs text-destructive mt-4 flex items-center justify-center gap-1.5">
-            <AlertCircle size={13} />
-            {checkoutError}
-          </p>
-        )}
 
         <motion.p
           initial={{ opacity: 0 }}
@@ -181,8 +128,8 @@ export function PricingSection() {
           transition={{ delay: 0.6, duration: 0.5 }}
           className="text-center text-xs text-muted-foreground/60 mt-10"
         >
-          All paid plans are billed monthly. No long-term commitment — cancel any time.
-          Quotas reset on the first of each month.
+          Pay-as-you-go usage is billed monthly in arrears. No long-term commitment —
+          change or cancel your spend cap any time. Quotas reset on the first of each month.
         </motion.p>
       </section>
 
@@ -198,19 +145,19 @@ export function PricingSection() {
           {[
             {
               q: "Do I need a credit card to sign up?",
-              a: "No. The Free tier requires only an email address. You only need payment details when upgrading to a paid plan.",
+              a: "No. The Free tier requires only an email address. You only need payment details when you turn on pay-as-you-go billing.",
+            },
+            {
+              q: "How does the $5 per 1,000 requests billing work?",
+              a: "Beyond your free 2,000 requests/month, usage is metered at $5 per 1,000 requests and billed monthly. You set a spend cap so you're never surprised by a bill — change or remove it any time from your dashboard.",
             },
             {
               q: "What happens if I exceed my quota?",
-              a: "Requests beyond your monthly quota will return a 429 response. You can upgrade at any time to increase your limit.",
+              a: "On the free tier, requests beyond 2,000/month return a 429. If you've turned on pay-as-you-go, usage beyond the free 2,000 is billed until you hit your spend cap — after that, requests return 429 until your quota resets.",
             },
             {
-              q: "Is the API key shared across plans?",
-              a: "Yes — your API key stays the same when you upgrade or downgrade. Just pass it as the `api_key` query parameter.",
-            },
-            {
-              q: "What is the anonymous tier?",
-              a: "You can call the API without a key, limited to 1,000 requests per month at 1 req/s, identified by IP. Great for quick tests.",
+              q: "Is my API key affected when I turn on pay-as-you-go?",
+              a: "No — your API key stays the same. Just pass it as the `api_key` query parameter, same as before.",
             },
           ].map(({ q, a }) => (
             <div key={q} className="flex flex-col gap-2">
