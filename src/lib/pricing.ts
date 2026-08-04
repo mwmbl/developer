@@ -11,7 +11,3 @@ export function formatUsd(cents: number): string {
     ? `$${dollars.toFixed(0)}`
     : `$${dollars.toFixed(2)}`;
 }
-
-export function requestsForSpendCents(cents: number): number {
-  return Math.floor(cents / CENTS_PER_1000_REQUESTS) * 1000;
-}

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { PricingCard, PricingTier } from "@/components/PricingCard";
 import { useAuth } from "@/lib/auth-context";
+import { FREE_ANON_REQUESTS } from "@/lib/pricing";
 
 export const TIERS: PricingTier[] = [
   {
@@ -101,7 +102,7 @@ export function PricingSection() {
           <span className="text-muted-foreground">
             <span className="text-accent-text font-semibold">Anonymous access</span>
             {" "}— the demo on our homepage uses this tier. No sign-up needed, but limited to{" "}
-            <span className="font-mono text-foreground">1,000 req/month</span> at{" "}
+            <span className="font-mono text-foreground">{FREE_ANON_REQUESTS.toLocaleString()} req/month</span> at{" "}
             <span className="font-mono text-foreground">1 req/s</span>, tied to your IP address.
           </span>
           <Link
