@@ -38,22 +38,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     agreements?.some((a) => a.agreement_type === "TERMS_OF_SERVICE_API") ?? false;
 
   useEffect(() => {
-    const access = TOKEN_STORAGE.access;
-    if (!access) {
-      setLoading(false);
-      return;
-    }
-    Promise.all([getMe(), getAgreements()])
-      .then(([profile, agrs]) => {
+    let cancelled = false;
+
+    async function loadSession() {
+      const access = TOKEN_STORAGE.access;
+      if (!access) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const [profile, agrs] = await Promise.all([getMe(), getAgreements()]);
+        if (cancelled) return;
         setUser(profile);
         setAgreements(agrs);
-      })
-      .catch(() => {
+      } catch {
         TOKEN_STORAGE.clear();
-        setUser(null);
-        setAgreements(null);
-      })
-      .finally(() => setLoading(false));
+        if (!cancelled) {
+          setUser(null);
+          setAgreements(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void loadSession();
+    return () => { cancelled = true; };
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {

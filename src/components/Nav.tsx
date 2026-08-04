@@ -36,12 +36,12 @@ export function Nav() {
 
         {/* Desktop links */}
         <div className="hidden sm:flex items-center gap-4 text-sm text-muted-foreground">
-          <a
+          <Link
             href="/#pricing"
             className="hover:text-foreground transition-colors"
           >
             Pricing
-          </a>
+          </Link>
           <a
             href="https://mwmbl.org"
             target="_blank"
@@ -117,13 +117,13 @@ export function Nav() {
             transition={{ duration: 0.18 }}
             className="sm:hidden absolute top-full left-0 right-0 z-50 border-b border-border bg-background px-6 py-4 flex flex-col gap-4 text-sm text-muted-foreground"
           >
-            <a
+            <Link
               href="/#pricing"
               onClick={close}
               className="hover:text-foreground transition-colors"
             >
               Pricing
-            </a>
+            </Link>
             <a
               href="https://mwmbl.org"
               target="_blank"
