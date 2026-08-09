@@ -7,45 +7,19 @@ import { motion } from "framer-motion";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { Check, Loader2 } from "lucide-react";
-import { register, ApiError } from "@/lib/api";
+import { forgotPassword, ApiError } from "@/lib/api";
 
-const VALUE_PROPS = [
-  "1,000 free requests/month — no sign-up required",
-  "2,000 requests/month free with an account",
-  "Pay-as-you-go beyond that — just $5 per 1,000 requests",
-  "Open-source, ethical, community-built index",
-  "Fast global search — under 200 ms typical latency",
-  "No tracking, no ads, no lock-in",
-];
-
-function SignUpForm() {
+function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     setError(null);
-
-    if (!agreedToTerms) {
-      setError("You must agree to the Terms of Service to create an account.");
-      return;
-    }
-    if (password !== confirm) {
-      setError("Passwords do not match.");
-      return;
-    }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-
     setLoading(true);
     try {
-      await register(email, password, ["TERMS_OF_SERVICE_API"]);
+      await forgotPassword(email.trim());
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
@@ -68,17 +42,17 @@ function SignUpForm() {
           className="text-xl font-semibold text-foreground"
           style={{ fontFamily: "'Hind Vadodara', sans-serif" }}
         >
-          Account created!
+          Check your inbox
         </h2>
         <p className="text-sm text-muted-foreground max-w-xs">
-          Check your inbox to verify your email address, then sign in
-          to retrieve your API key.
+          If an account exists for that email address, we&apos;ve sent a link
+          to reset your password.
         </p>
         <Link
-          href="/"
+          href="/signin"
           className="mt-2 text-xs font-semibold text-accent-text hover:underline"
         >
-          ← Back to the demo
+          ← Back to sign in
         </Link>
       </motion.div>
     );
@@ -91,10 +65,10 @@ function SignUpForm() {
           className="text-xl font-semibold text-foreground mb-1"
           style={{ fontFamily: "'Hind Vadodara', sans-serif" }}
         >
-          Create your account
+          Reset your password
         </h2>
         <p className="text-xs text-muted-foreground">
-          Free forever. No credit card required.
+          Enter your email and we&apos;ll send you a reset link.
         </p>
       </div>
 
@@ -115,59 +89,7 @@ function SignUpForm() {
           />
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-muted-foreground" htmlFor="password">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            required
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="At least 8 characters"
-            className="w-full bg-transparent border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-accent-text transition-colors font-mono"
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-muted-foreground" htmlFor="confirm">
-            Confirm password
-          </label>
-          <input
-            id="confirm"
-            type="password"
-            required
-            autoComplete="new-password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            placeholder="Repeat your password"
-            className="w-full bg-transparent border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-accent-text transition-colors font-mono"
-          />
-        </div>
-
         {error && <p className="text-xs text-destructive">{error}</p>}
-
-        <label className="flex items-start gap-2.5 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={agreedToTerms}
-            onChange={(e) => setAgreedToTerms(e.target.checked)}
-            className="mt-0.5 shrink-0 accent-[var(--accent-text)]"
-          />
-          <span className="text-xs text-muted-foreground/60 leading-relaxed">
-            I have read and agree to the{" "}
-            <Link href="/terms" className="text-accent-text hover:underline" target="_blank">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link href="/privacy" className="text-accent-text hover:underline" target="_blank">
-              Privacy Policy
-            </Link>
-            .
-          </span>
-        </label>
 
         <button
           type="submit"
@@ -177,16 +99,16 @@ function SignUpForm() {
           {loading ? (
             <>
               <Loader2 size={14} className="animate-spin" />
-              Creating account…
+              Sending…
             </>
           ) : (
-            "Create account"
+            "Send reset link"
           )}
         </button>
       </form>
 
       <p className="text-center text-xs text-muted-foreground/60">
-        Already have an account?{" "}
+        Remembered your password?{" "}
         <Link href="/signin" className="text-accent-text hover:underline">
           Sign in
         </Link>
@@ -195,7 +117,7 @@ function SignUpForm() {
   );
 }
 
-export default function SignUpPage() {
+export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <Nav />
@@ -226,26 +148,9 @@ export default function SignUpPage() {
                 <span className="text-accent-text">Build something good.</span>
               </h1>
               <p className="text-muted-foreground text-sm leading-relaxed max-w-sm">
-                Create a free account to get your API key and start integrating
-                Mwmbl search into your project today.
+                We&apos;ll email you a link to get back into your account.
               </p>
             </div>
-
-            <ul className="flex flex-col gap-3">
-              {VALUE_PROPS.map((prop) => (
-                <li key={prop} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <Check size={14} className="text-accent-text mt-0.5 shrink-0" />
-                  {prop}
-                </li>
-              ))}
-            </ul>
-
-            <p className="text-xs text-muted-foreground/50">
-              Need more?{" "}
-              <Link href="/#pricing" className="text-accent-text hover:underline">
-                View all pricing plans →
-              </Link>
-            </p>
           </motion.div>
 
           <motion.div
@@ -255,7 +160,7 @@ export default function SignUpPage() {
           >
             <div className="border border-border bg-card rounded-sm p-8 flex flex-col gap-6">
               <Suspense fallback={<Loader2 className="animate-spin mx-auto" />}>
-                <SignUpForm />
+                <ForgotPasswordForm />
               </Suspense>
             </div>
           </motion.div>
