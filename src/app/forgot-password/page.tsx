@@ -19,7 +19,7 @@ function ForgotPasswordForm() {
     setError(null);
     setLoading(true);
     try {
-      await forgotPassword(email);
+      await forgotPassword(email.trim());
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");

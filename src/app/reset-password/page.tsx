@@ -10,9 +10,19 @@ import { Check, Loader2, XCircle } from "lucide-react";
 import { resetPassword, ApiError } from "@/lib/api";
 
 function ResetPasswordForm() {
-  const searchParams = useSearchParams();
-  const email = searchParams.get("email");
-  const key = searchParams.get("key");
+  // Calling useSearchParams() (even unused) forces this component onto the
+  // client-only render path, so reading window.location below is safe and
+  // won't cause a hydration mismatch.
+  useSearchParams();
+
+  // URLSearchParams (and therefore useSearchParams()) decodes "+" as a
+  // literal space per application/x-www-form-urlencoded rules, which
+  // corrupts emails/tokens that contain a "+" but weren't percent-encoded
+  // as %2B. Escape literal "+" first so it round-trips as "+" instead.
+  const rawSearch = typeof window !== "undefined" ? window.location.search : "";
+  const params = new URLSearchParams(rawSearch.replace(/\+/g, "%2B"));
+  const email = params.get("email")?.trim() || null;
+  const key = params.get("key")?.trim() || null;
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
