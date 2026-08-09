@@ -33,6 +33,16 @@ The frontend talks to the Mwmbl platform API. The full OpenAPI spec is in [opena
 - [Framer Motion](https://www.framer.com/motion/) for animations
 - [Lucide React](https://lucide.dev) for icons
 
+## Testing
+
+```bash
+npm test        # unit/component tests (vitest), part of CI
+npm run test:e2e  # Playwright E2E against the live beta.mwmbl.org backend, local-only
+```
+
+See [e2e/README.md](e2e/README.md) for one-time setup (installing the Chromium
+browser, test-account credentials) before running `test:e2e`.
+
 ## Build
 
 ```bash
