@@ -135,6 +135,13 @@ export async function forgotPassword(email: string): Promise<void> {
   });
 }
 
+export async function resetPassword(email: string, key: string, newPassword: string): Promise<void> {
+  await request("/api/v1/platform/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ email, key, new_password: newPassword }),
+  });
+}
+
 // ── Authenticated ────────────────────────────────────────────────────────────
 
 export interface UserProfile {
