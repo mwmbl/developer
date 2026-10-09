@@ -1,4 +1,6 @@
-const API_BASE = "https://beta.mwmbl.org";
+// Production by default. The local E2E suite overrides this to point at the
+// beta backend (wired to Polar's sandbox) — see playwright.config.ts.
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "https://api.mwmbl.org";
 
 const TOKEN_STORAGE = {
   get access() { return typeof window !== "undefined" ? localStorage.getItem("mwmbl_access") : null; },

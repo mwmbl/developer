@@ -1,7 +1,9 @@
 # E2E tests
 
 Playwright specs that drive the app in a real browser against the **live**
-`https://beta.mwmbl.org` backend (see `API_BASE` in `src/lib/api.ts`). These
+`https://beta.mwmbl.org` backend (Playwright starts `next dev` with
+`NEXT_PUBLIC_API_BASE` set to beta; the app itself defaults to production
+`api.mwmbl.org`, see `src/lib/api.ts`). These
 are intentionally **not** part of `npm test` or CI — they hit a real service,
 need real credentials, and (in `billing.spec.ts`) touch a real Polar sandbox
 checkout session.
