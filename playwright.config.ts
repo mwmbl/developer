@@ -1,7 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 // Local-only E2E suite that drives the real Next.js dev server and talks to
-// the live https://beta.mwmbl.org backend (see src/lib/api.ts). Deliberately
+// the live https://beta.mwmbl.org backend (via NEXT_PUBLIC_API_BASE, which
+// overrides the production default in src/lib/api.ts). Deliberately
 // not wired into `npm test` or CI — see e2e/README.md.
 try {
   process.loadEnvFile(".env.e2e.local");
@@ -28,8 +29,10 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev",
+    env: { NEXT_PUBLIC_API_BASE: "https://beta.mwmbl.org" },
     url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
+    // Never reuse: an already-running dev server would talk to production.
+    reuseExistingServer: false,
     timeout: 60_000,
   },
 });
